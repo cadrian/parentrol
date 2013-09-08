@@ -1,0 +1,11 @@
+# true to activate, false to deactivate (default: true)
+# ACTIVE=true
+
+# false to avoid actual changes, true to allow (default: false)
+DO_IT=true
+
+# default tools directory
+# TOOLSDIR=/usr/share/parentrol
+
+# defaults etc directory
+# ETCDIR=/etc

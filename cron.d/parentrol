@@ -1,0 +1,9 @@
+# /etc/cron.d/anacron: crontab entries for the anacron package
+
+SHELL=/bin/bash
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+TOOLSDIR=/usr/share/parentrol
+ETCDIR=/etc
+
+* * * * * root $TOOLSDIR/check.sh
+@reboot root $TOOLSDIR/check.sh
