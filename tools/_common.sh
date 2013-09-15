@@ -1,5 +1,11 @@
 umask 077
 export NOW=$(date +'%H * 60 + %M' | bc)
+export LOG=${LOG:-/var/log/parentrol}
+export TMPDIR=${TMPDIR:-/tmp}
+
+function log {
+    echo $(date +'%Y/%m/%d %H:%M:%S') "$@" >> $LOG
+}
 
 function get_display {
     user=$1
@@ -15,9 +21,9 @@ function kill_user {
     user=$1
     shift
     display=$(get_display $user) && {
-        echo "Kill user: $user ($@ -- DISPLAY=$display)"
+        log "**** Kill user: $user ($@ -- DISPLAY=$display)"
 
-        $DO_IT && {
+        $DRY_RUN || {
             passwd -lq $user
             su $user -c "DISPLAY=$display gnome-session-quit --logout --no-prompt"
             sleep 10
@@ -28,10 +34,11 @@ function kill_user {
 
 function warn_user {
     user=$1
+    gracetime=$2
     display=$(get_display $user) && {
-        echo "Warn user: $user (DISPLAY=$display)"
-        $DO_IT && {
-            su $user -c "DISPLAY=$display yad --title 'ATTENTION' --text='FIN DE SESSION DANS 5 MINUTES' --button=gtk-ok:0 --sticky --center --on-top --justify=center" &
+        log "**** Warn user: $user (DISPLAY=$display)"
+        $DRY_RUN || {
+            su $user -c "DISPLAY=$display yad --title 'ATTENTION' --text='FIN DE SESSION DANS $gracetime MINUTES' --button=gtk-ok:0 --sticky --center --on-top --justify=center" &
         }
     }
 }
@@ -48,7 +55,7 @@ function count_screensaver {
     user=$1
 
     if check_screensaver $user; then
-        file=/tmp/parentrol-$user.screensaver
+        file=$TMPDIR/parentrol-$user.screensaver
         if [ -e $file ]; then
             ss_count=$(<$file)
         else
@@ -60,7 +67,7 @@ function count_screensaver {
         ss_count=0
     fi
 
-    echo $ss_count
+    log "screensaver count for $user: $ss_count"
     return 0
 }
 
@@ -87,12 +94,12 @@ function check_logged_in_user {
     elif [ $(($login_time - $ss_count)) -gt $(($maxtime + 1)) ]; then
         kill_user $user "time expired"
         return 0
-    elif [ $login_time -gt $(($maxtime - $gracetime)) -o $NOW -gt $(($endtime - $gracetime))]; then
-        if [ -e /tmp/parentrol_$user.flag ]; then
-            echo "User $user already warned"
+    elif [ $login_time -gt $(($maxtime - $gracetime - 1)) -o $NOW -gt $(($endtime - $gracetime - 1))]; then
+        if [ -e $TMPDIR/parentrol_$user.flag ]; then
+            log "$user already warned"
         else
-            touch /tmp/parentrol_$user.flag
-            warn_user $user
+            touch $TMPDIR/parentrol_$user.flag
+            warn_user $user $gracetime
         fi
         return 0
     fi
@@ -107,6 +114,8 @@ function check_user {
     starttime=$4
     endtime=$5
 
+    log "Checking $user"
+
     if last -R $user | grep -v "$(date +'%a %b %_d')" | grep -q "still logged in" ; then
         kill_user $user "still logged in since yesterday"
         return 0
@@ -120,18 +129,18 @@ function check_user {
 
     if last -R $user | grep -q "$(date +'%a %b %_d')"; then
         # user currently not logged in
-        :
+        log "$user not logged in"
     elif [ $NOW -lt $starttime ]; then
-        # user cannot log in yet (too early)
-        $DO_IT && passwd -lq $user
+        log "$user cannot log in yet (too early)"
+        $DRY_RUN || passwd -lq $user
     elif [ $NOW -gt $endtime ]; then
-        # user cannot log in anymore (too late)
-        $DO_IT && passwd -lq $user
+        log "$user cannot log in anymore (too late)"
+        $DRY_RUN || passwd -lq $user
     else
-        # user either not logged in today or time not spent
+        log "$user allowed, not logged in"
         # (always do it to return to sane defaults)
-        $DO_IT && grep -q "^$user:\!" /etc/shadow && passwd -uq $user
-        rm -f /tmp/parentrol_$user.flag
+        $DRY_RUN || passwd -uq $user
+        rm -f $TMPDIR/parentrol_$user.flag
     fi
 }
 
