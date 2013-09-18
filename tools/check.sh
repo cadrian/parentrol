@@ -19,6 +19,9 @@ test -d $ETCDIR/parentrol/users.d || {
     exit 0
 }
 
+log "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+log "Starting parentrol checking session (NOW=$NOW)"
+
 pids=""
 for userdef in $ETCDIR/parentrol/users.d/*; do
     test -d $userdef && {
@@ -35,3 +38,5 @@ for userdef in $ETCDIR/parentrol/users.d/*; do
 done
 
 wait $pids
+
+log "Finished."

@@ -7,8 +7,6 @@ function log {
     echo $(date +'%Y/%m/%d %H:%M:%S') "$@" >> $LOG
 }
 
-log "NOW is $NOW"
-
 function get_display {
     user=$1
     tty=$(last -R $user | grep "still logged in" | awk '$2 ~ /tty[0-9]+/ {print $2}') && {
