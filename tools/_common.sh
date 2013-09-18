@@ -11,7 +11,7 @@ log "NOW is $NOW"
 
 function get_display {
     user=$1
-    tty=$(last -R $user | grep "$(date +'%a %b %_d')" | grep "still logged in" | awk '$2 ~ /tty[0-9]+/ {print $2}') && {
+    tty=$(last -R $user | grep "still logged in" | awk '$2 ~ /tty[0-9]+/ {print $2}') && {
         test -n "$tty" && {
             ps -f -C Xorg | awk '$6 == "'$tty'" { print $9 }'
             return 0
