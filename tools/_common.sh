@@ -12,10 +12,12 @@ log "NOW is $NOW"
 function get_display {
     user=$1
     tty=$(last -R $user | grep "$(date +'%a %b %_d')" | grep "still logged in" | awk '$2 ~ /tty[0-9]+/ {print $2}') && {
-        test -z "$tty" && return 1
-        ps -f -C Xorg | awk '$6 == "'$tty'" { print $9 }'
-        return 0
+        test -n "$tty" && {
+            ps -f -C Xorg | awk '$6 == "'$tty'" { print $9 }'
+            return 0
+        }
     }
+    echo "not found"
     return 1
 }
 
@@ -119,6 +121,7 @@ function check_user {
     endtime=$5
 
     log "Checking $user ($starttime-$endtime: max $maxtime/$gracetime)"
+    log "Display of $user is" $(get_display $user)
 
     if last -R $user | grep -v "$(date +'%a %b %_d')" | grep -q "still logged in" ; then
         kill_user $user "still logged in since yesterday"
