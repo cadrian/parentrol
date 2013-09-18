@@ -26,7 +26,6 @@ function kill_user {
     shift
     log "**** Kill user: $user ($@)"
     display=$(get_display $user) && {
-        log "DISPLAY=$display"
         $DRY_RUN || {
             passwd -lq $user
             su $user -c "DISPLAY=$display gnome-session-quit --logout --no-prompt"
@@ -41,7 +40,6 @@ function warn_user {
     gracetime=$2
     log "**** Warn user: $user"
     display=$(get_display $user) && {
-        log "DISPLAY=$display"
         $DRY_RUN || {
             su $user -c "DISPLAY=$display yad --title 'ATTENTION' --text='FIN DE SESSION DANS $gracetime MINUTES' --button=gtk-ok:0 --sticky --center --on-top --justify=center" &
         }
@@ -149,8 +147,6 @@ function check_user {
         $DRY_RUN || passwd -uq $user
         rm -f $TMPDIR/parentrol_$user.flag
     fi
-
-    log "$user logged in and allowed"
 }
 
 function cat_or_default {
