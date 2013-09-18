@@ -1,8 +1,8 @@
 # true to activate, false to deactivate (default: true)
 # ACTIVE=true
 
-# false to avoid actual changes, true to allow (default: false)
-DO_IT=true
+# true to avoid actual changes, false to allow (default: true)
+DRY_RUN=false
 
 # default tools directory
 # TOOLSDIR=/usr/share/parentrol
