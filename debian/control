@@ -9,7 +9,7 @@ Standards-Version: 3.9.4
 #Vcs-Browser: http://git.debian.org/?p=collab-maint/parentrol.git;a=summary
 
 Package: parentrol
-Architecture: any
+Architecture: all
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Parental time control
  Time control to let children use the computer only at known times.

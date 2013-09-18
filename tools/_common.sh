@@ -7,6 +7,8 @@ function log {
     echo $(date +'%Y/%m/%d %H:%M:%S') "$@" >> $LOG
 }
 
+log "NOW is $NOW"
+
 function get_display {
     user=$1
     tty=$(last -R $user | grep "$(date +'%a %b %_d')" | grep "still logged in" | awk '$2 ~ /tty[0-9]+/ {print $2}') && {
@@ -20,9 +22,9 @@ function get_display {
 function kill_user {
     user=$1
     shift
+    log "**** Kill user: $user ($@)"
     display=$(get_display $user) && {
-        log "**** Kill user: $user ($@ -- DISPLAY=$display)"
-
+        log "DISPLAY=$display"
         $DRY_RUN || {
             passwd -lq $user
             su $user -c "DISPLAY=$display gnome-session-quit --logout --no-prompt"
@@ -35,8 +37,9 @@ function kill_user {
 function warn_user {
     user=$1
     gracetime=$2
+    log "**** Warn user: $user"
     display=$(get_display $user) && {
-        log "**** Warn user: $user (DISPLAY=$display)"
+        log "DISPLAY=$display"
         $DRY_RUN || {
             su $user -c "DISPLAY=$display yad --title 'ATTENTION' --text='FIN DE SESSION DANS $gracetime MINUTES' --button=gtk-ok:0 --sticky --center --on-top --justify=center" &
         }
@@ -45,8 +48,9 @@ function warn_user {
 
 function check_screensaver {
     user=$1
+    log "Checking screensaver of $user"
     display=$(get_display $user) && {
-        sudo su $user -c "DISPLAY=$display LANG=C gnome-screensaver-command -q" | grep -q "is active" && return 0
+        su $user -c "DISPLAY=$display LANG=C gnome-screensaver-command -q" | grep -q "is active" && return 0
     }
     return 1
 }
@@ -54,7 +58,7 @@ function check_screensaver {
 function count_screensaver {
     user=$1
 
-    if check_screensaver $user; then
+    if check_screensaver $user ; then
         file=$TMPDIR/parentrol-$user.screensaver
         if [ -e $file ]; then
             ss_count=$(<$file)
@@ -114,7 +118,7 @@ function check_user {
     starttime=$4
     endtime=$5
 
-    log "Checking $user"
+    log "Checking $user ($starttime-$endtime: max $maxtime/$gracetime)"
 
     if last -R $user | grep -v "$(date +'%a %b %_d')" | grep -q "still logged in" ; then
         kill_user $user "still logged in since yesterday"
@@ -122,12 +126,12 @@ function check_user {
     fi
 
     if last -R $user | grep -q "still logged in" ; then
-        if check_logged_in_user $user $maxtime $gracetime $starttime $endtime; then
+        if check_logged_in_user $user $maxtime $gracetime $starttime $endtime ; then
             return 0
         fi
     fi
 
-    if last -R $user | grep -q "$(date +'%a %b %_d')"; then
+    if last -R $user | grep -q "$(date +'%a %b %_d')" ; then
         # user currently not logged in
         log "$user not logged in"
     elif [ $NOW -lt $starttime ]; then
@@ -142,6 +146,8 @@ function check_user {
         $DRY_RUN || passwd -uq $user
         rm -f $TMPDIR/parentrol_$user.flag
     fi
+
+    log "$user logged in and allowed"
 }
 
 function cat_or_default {
