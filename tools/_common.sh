@@ -118,6 +118,10 @@ function check_user {
 
     log "Checking $user ($starttime-$endtime: max $maxtime/$gracetime)"
     log "Display of $user is" $(get_display $user)
+    log "Date: $(date +'%a %b %_d')"
+    last -R $user | grep -v "$(date +'%a %b %_d')" | grep "still logged in" | while read line; do
+        log " | $line"
+    done
 
     if last -R $user | grep -v "$(date +'%a %b %_d')" | grep -q "still logged in" ; then
         kill_user $user "still logged in since yesterday"

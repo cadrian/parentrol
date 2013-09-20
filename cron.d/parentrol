@@ -4,6 +4,7 @@ SHELL=/bin/bash
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 TOOLSDIR=/usr/share/parentrol
 ETCDIR=/etc
+LANG=C
 
 * * * * * root $TOOLSDIR/check.sh
 @reboot root $TOOLSDIR/check.sh
