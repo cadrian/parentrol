@@ -1,0 +1,6 @@
+/var/log/parentrol.log {
+    daily
+    missingok
+    rotate 7
+    compress
+}
