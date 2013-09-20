@@ -11,8 +11,8 @@ $2 ~ /tty[0-9]+/ && /still logged in/ {
     H = strtonum(a[1]);
     M = strtonum(a[2]);
     if ((H < h) || (H == h && M < m)) {
-	h = H;
-	m = M;
+        h = H;
+        m = M;
     }
 }
 
@@ -32,9 +32,9 @@ $2 ~ /tty[0-9]+/ && $7 == "-" && $8 ~ /[0-9]+:[0-9]+/ {
 
 END {
     if (h == 24) {
-	t = strtonum(ENVIRON["NOW"]);
+        t = strtonum(ENVIRON["NOW"]);
     } else {
-	t += (h * 60 + m) - strtonum(ENVIRON["NOW"]);
+        t += strtonum(ENVIRON["NOW"]) - (h * 60 + m);
     }
     printf("%d\n", t);
 }

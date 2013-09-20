@@ -2,6 +2,7 @@ umask 077
 export NOW=$(date +'%H * 60 + %M' | bc)
 export LOG=${LOG:-/var/log/parentrol}
 export TMPDIR=${TMPDIR:-/tmp}
+export LANG=C
 
 function log {
     echo $(date +'%Y/%m/%d %H:%M:%S') "$@" >> $LOG
@@ -48,7 +49,8 @@ function check_screensaver {
     user=$1
     log "Checking screensaver of $user"
     display=$(get_display $user) && {
-        su $user -c "DISPLAY=$display LANG=C gnome-screensaver-command -q" | grep -q "is active" && return 0
+        sudo su $user -c "DISPLAY=$display dbus-send --session --dest=org.gnome.ScreenSaver --type=method_call --print-reply /org/gnome/ScreenSaver org.gnome.ScreenSaver.GetActive" 2>/dev/null | grep -q "boolean true" && return 0
+        #su $user -c "DISPLAY=$display gnome-screensaver-command -q" 2>/dev/null | grep -q "is active" && return 0
     }
     return 1
 }
@@ -56,20 +58,20 @@ function check_screensaver {
 function count_screensaver {
     user=$1
 
-    if check_screensaver $user ; then
-        file=$TMPDIR/parentrol-$user.screensaver
-        if [ -e $file ]; then
-            ss_count=$(<$file)
-        else
-            ss_count=0
-        fi
-        echo $(($ss_count + 1)) > $file
-        return 1
+    file=$TMPDIR/parentrol-$user.screensaver
+    if [ -e $file ]; then
+        ss_count=$(<$file)
     else
         ss_count=0
     fi
 
+    if check_screensaver $user ; then
+        echo $(($ss_count + 1)) > $file
+        return 1
+    fi
+
     log "screensaver count for $user: $ss_count"
+    echo $ss_count
     return 0
 }
 
@@ -80,12 +82,13 @@ function check_logged_in_user {
     starttime=$4
     endtime=$5
 
-    ss_count=$(count_screensaver $user)
-    test -n "$ss_count" || return 0
+    ss_count=$(count_screensaver $user) || return 0
 
     login_time=$(
         last -R $user | grep "$(date +'%a %b %_d')" | $TOOLSDIR/_login_time.awk
     )
+
+    log "$user: login_time=$login_time -- ss_count=$ss_count"
 
     if [ $NOW -lt $starttime ]; then
         kill_user $user "too early"
@@ -96,7 +99,7 @@ function check_logged_in_user {
     elif [ $(($login_time - $ss_count)) -gt $(($maxtime + 1)) ]; then
         kill_user $user "time expired"
         return 0
-    elif [ $login_time -gt $(($maxtime - $gracetime - 1)) -o $NOW -gt $(($endtime - $gracetime - 1))]; then
+    elif [ $login_time -gt $(($maxtime - $gracetime - 1)) -o $NOW -gt $(($endtime - $gracetime - 1)) ]; then
         if [ -e $TMPDIR/parentrol_$user.flag ]; then
             log "$user already warned"
         else
