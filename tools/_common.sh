@@ -1,15 +1,19 @@
 umask 077
 export NOW=$(date +'%H * 60 + %M' | bc)
 export LOG=${LOG:-/var/log/parentrol.log}
-export TMPDIR=${TMPDIR:-/tmp}
+export TMPDIR=${TMPDIR:-/tmp}/parentrol.$(id -u)
 export LANG=C
+
+mkdir -p $TMPDIR
 
 function log {
     echo $(date +'%Y/%m/%d %H:%M:%S') "$@" >> $LOG
 }
 
 function get_display {
-    user=$1
+    local user=$1
+    local tty
+
     tty=$(last -R $user | grep "still logged in" | awk '$2 ~ /tty[0-9]+/ {print $2}') && {
         test -n "$tty" && {
             ps -f -C Xorg | awk '$6 == "'$tty'" { print $9 }'
@@ -21,7 +25,9 @@ function get_display {
 }
 
 function kill_user {
-    user=$1
+    local user=$1
+    local display
+
     shift
     log "**** Kill user: $user ($@)"
     display=$(get_display $user) && {
@@ -35,8 +41,10 @@ function kill_user {
 }
 
 function warn_user {
-    user=$1
-    gracetime=$2
+    local user=$1
+    local gracetime=$2
+    local display
+
     log "**** Warn user: $user"
     display=$(get_display $user) && {
         $DRY_RUN || {
@@ -46,19 +54,22 @@ function warn_user {
 }
 
 function check_screensaver {
-    user=$1
+    local user=$1
+    local display
+
     log "Checking screensaver of $user"
     display=$(get_display $user) && {
-        sudo su $user -c "DISPLAY=$display dbus-send --session --dest=org.gnome.ScreenSaver --type=method_call --print-reply /org/gnome/ScreenSaver org.gnome.ScreenSaver.GetActive" 2>/dev/null | grep -q "boolean true" && return 0
-        #su $user -c "DISPLAY=$display gnome-screensaver-command -q" 2>/dev/null | grep -q "is active" && return 0
+        su $user -c "DISPLAY=$display dbus-send --session --dest=org.gnome.ScreenSaver --type=method_call --print-reply /org/gnome/ScreenSaver org.gnome.ScreenSaver.GetActive" 2>/dev/null | grep -q "boolean true" && return 0
     }
     return 1
 }
 
 function count_screensaver {
-    user=$1
+    local user=$1
+    local file
+    local ss_count
 
-    file=$TMPDIR/parentrol-$user.screensaver
+    file=$TMPDIR/$user.screensaver
     if [ -e $file ]; then
         ss_count=$(<$file)
     else
@@ -66,7 +77,9 @@ function count_screensaver {
     fi
 
     if check_screensaver $user ; then
-        echo $(($ss_count + 1)) > $file
+        ss_count=$(($ss_count + 1))
+        log "screensaver is active for $user: $ss_count"
+        echo $ss_count > $file
         return 1
     fi
 
@@ -76,11 +89,13 @@ function count_screensaver {
 }
 
 function check_logged_in_user {
-    user=$1
-    maxtime=$2
-    gracetime=$3
-    starttime=$4
-    endtime=$5
+    local user=$1
+    local maxtime=$2
+    local gracetime=$3
+    local starttime=$4
+    local endtime=$5
+    local ss_count
+    local login_time
 
     ss_count=$(count_screensaver $user) || return 0
 
@@ -100,10 +115,10 @@ function check_logged_in_user {
         kill_user $user "time expired"
         return 0
     elif [ $login_time -gt $(($maxtime - $gracetime - 1)) -o $NOW -gt $(($endtime - $gracetime - 1)) ]; then
-        if [ -e $TMPDIR/parentrol_$user.flag ]; then
+        if [ -e $TMPDIR/$user.flag ]; then
             log "$user already warned"
         else
-            touch $TMPDIR/parentrol_$user.flag
+            touch $TMPDIR/$user.flag
             warn_user $user $gracetime
         fi
         return 0
@@ -113,11 +128,11 @@ function check_logged_in_user {
 }
 
 function check_user {
-    user=$1
-    maxtime=$2
-    gracetime=$3
-    starttime=$4
-    endtime=$5
+    local user=$1
+    local maxtime=$2
+    local gracetime=$3
+    local starttime=$4
+    local endtime=$5
 
     log "Checking $user ($starttime-$endtime: max $maxtime/$gracetime)"
     log "Display of $user is" $(get_display $user)
@@ -149,13 +164,14 @@ function check_user {
         log "$user allowed, not logged in"
         # (always do it to return to sane defaults)
         $DRY_RUN || passwd -uq $user
-        rm -f $TMPDIR/parentrol_$user.flag
+        rm -f $TMPDIR/$user.flag
     fi
 }
 
 function cat_or_default {
-    file=$1
-    default=$2
+    local file=$1
+    local default=$2
+
     if [ -e $file ]; then
         cat $file
     else
