@@ -1,6 +1,6 @@
 umask 077
 export NOW=$(date +'%H * 60 + %M' | bc)
-export LOG=${LOG:-/var/log/parentrol}
+export LOG=${LOG:-/var/log/parentrol.log}
 export TMPDIR=${TMPDIR:-/tmp}
 export LANG=C
 
