@@ -1,0 +1,30 @@
+_parentrol_complete()
+{
+    local cur
+
+    COMPREPLY=()
+    cur=${COMP_WORDS[COMP_CWORD]}
+
+    case $COMP_CWORD in
+        1)
+            COMPREPLY=($(compgen -W "help $(awk -F: '$3 >= 1000 && $3 < 65000 {print $1}' /etc/passwd)" -- "$cur"))
+            ;;
+        2)
+            user=${COMP_WORDS[1]}
+            if [ -d /etc/parentrol/users.d/$user ]; then
+                COMPREPLY=($(compgen -W "remove starttime endtime maxtime gracetime" -- "$cur"))
+            else
+                COMPREPLY=($(compgen -W create -- "$cur"))
+            fi
+            ;;
+        3)
+            user=${COMP_WORDS[1]}
+            file=${COMP_WORDS[2]}
+            case "$file" in
+                starttime|endtime|maxtime|gracetime)
+                    COMPREPLY=($(compgen -W "Monday Tuesday Wednesday Thursday Friday Saturday Sunday Override" -- "$cur"))
+                    ;;
+            esac
+    esac
+}
+complete -F _parentrol_complete parentrol
