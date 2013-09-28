@@ -1,3 +1,154 @@
-#!/usr/bin/python
+#!/bin/bash
 
-# todo: control interface
+USERSDIR=${USERSDIR:-/etc/parentrol/users.d}
+
+case "$1" in
+    help|--help|-h|-?)
+        exec cat <<EOF
+
+Parentrol is an interface to limit users time.
+
+Usage:
+
+$0 <user> <file> [<ext>] <value>
+    Update the user parentrol definition
+    <user>  the login of a limited user
+    <file>  the file to modify: one of
+            starttime, endtime, maxtime, gracetime
+    <ext>   if present, either the specific day or 'override'
+    <value> the time in format HH:MM or in minutes
+
+$0 <user> <file> [<ext>] remove
+    Remove the user parentrol definition
+    <user>  the login of a limited user
+    <file>  the file to modify: one of
+            starttime, endtime, maxtime, gracetime
+    <ext>   if present, either the specific day or 'override'
+
+$0 <user> create
+    Create the user
+    <user>  the login of a limited user
+
+$0 <user> remove
+    Remove the user
+    <user>  the login of a limited user
+
+$0 help
+    This help
+
+EOF
+        ;;
+    "")
+        echo "$0: Expected <user> or help" >&2
+        exit 1
+        ;;
+esac
+
+user=$1
+if [ ! -d $USERSDIR/$user ]; then
+    if [ "$2" == create ]; then
+        echo "$0: Creating $USERSDIR/$user"
+        mkdir -p $USERSDIR/$user
+        exit 0
+    fi
+    echo "$0: Unknown user $user" >&2
+    exit 1
+fi
+if [ "$2" == remove ]; then
+    echo "$0: Removing $USERSDIR/$user"
+    rm -rf $USERSDIR/$user
+    exit 0
+fi
+
+shift
+
+if [ -z "$1" ]; then
+    echo "$0: Expected file" >&2
+    exit 1
+fi
+
+case "$1" in
+    start*)
+        file=starttime
+        ;;
+    end*)
+        file=endtime
+        ;;
+    max*)
+        file=maxtime
+        ;;
+    grace*)
+        file=gracetime
+        ;;
+    *)
+        echo "$0: Unknown file: $1" >&2
+        exit 1
+        ;;
+esac
+shift
+
+case "$1" in
+    [Mm]on*)
+        ext=Mon
+        shift
+        ;;
+    [Tt]ue*)
+        ext=Tue
+        shift
+        ;;
+    [Ww]ed*)
+        ext=Wed
+        shift
+        ;;
+    [Tt]hu*)
+        ext=Thu
+        shift
+        ;;
+    [Ff]ri*)
+        ext=Fri
+        shift
+        ;;
+    [Ss]at*)
+        ext=Sat
+        shift
+        ;;
+    [Ss]un*)
+        ext=Sun
+        shift
+        ;;
+    [Oo]vr|[Oo]ver*)
+        ext=ovr
+        shift
+        ;;
+    *)
+        ext=""
+        ;;
+esac
+
+if [ -z "$1" ]; then
+    echo "$0: Expected value" >&2
+    exit 1
+fi
+
+if [ "$1" == remove ]; then
+    echo "$0: Removing $USERSDIR/$user/$file.$ext"
+    rm -f $USERSDIR/$user/$file.$ext
+else
+    value=$(echo $1 | egrep '([0-9]{1,2}:[0-9]{1,2}|[0-9]{1,4})' | sed 's/:/*60+/' | bc 2>/dev/null)
+    if [ -z "$value" ]; then
+        echo "$0: Invalid value: $1" >&2
+        exit 1
+    elif [ "$value" -le 0 -o "$value" -gt 1440 ]; then
+        echo "$0: Value out of range: $1" >&2
+        exit 1
+    fi
+    shift
+
+    if [ -n "$1" ]; then
+        echo "$0: Unexpected data: $1" >&2
+        exit 1
+    fi
+
+    echo "$0: Setting $USERSDIR/$user/$file.$ext to $value"
+    echo $value > $USERSDIR/$user/$file.$ext
+fi
