@@ -1,12 +1,33 @@
 #!/bin/bash
 
+# Parentrol: parental control
+# Copyright (C) 2013 Cyril Adrian <cyril.adrian@gmail.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
 USERSDIR=${USERSDIR:-/etc/parentrol/users.d}
 
 case "$1" in
     help|--help|-h|-?)
         exec cat <<EOF
 
-Parentrol is an interface to limit users time.
+Parentrol: parental control
+Copyright (C) 2013 Cyril Adrian <cyril.adrian@gmail.com>
+This program comes with ABSOLUTELY NO WARRANTY.
+This is free software, and you are welcome to redistribute it
+under certain conditions (see http://www.gnu.org/copyleft/gpl.html).
 
 Usage:
 
@@ -89,35 +110,35 @@ shift
 
 case "$1" in
     [Mm]on*)
-        ext=Mon
+        ext=.Mon
         shift
         ;;
     [Tt]ue*)
-        ext=Tue
+        ext=.Tue
         shift
         ;;
     [Ww]ed*)
-        ext=Wed
+        ext=.Wed
         shift
         ;;
     [Tt]hu*)
-        ext=Thu
+        ext=.Thu
         shift
         ;;
     [Ff]ri*)
-        ext=Fri
+        ext=.Fri
         shift
         ;;
     [Ss]at*)
-        ext=Sat
+        ext=.Sat
         shift
         ;;
     [Ss]un*)
-        ext=Sun
+        ext=.Sun
         shift
         ;;
     [Oo]vr|[Oo]ver*)
-        ext=ovr
+        ext=.ovr
         shift
         ;;
     *)
@@ -131,14 +152,14 @@ if [ -z "$1" ]; then
 fi
 
 if [ "$1" == remove ]; then
-    echo "$0: Removing $USERSDIR/$user/$file.$ext"
-    rm -f $USERSDIR/$user/$file.$ext
+    echo "$0: Removing $USERSDIR/$user/$file$ext"
+    rm -f $USERSDIR/$user/$file$ext
 else
     value=$(echo $1 | egrep '([0-9]{1,2}:[0-9]{1,2}|[0-9]{1,4})' | sed 's/:/*60+/' | bc 2>/dev/null)
     if [ -z "$value" ]; then
         echo "$0: Invalid value: $1" >&2
         exit 1
-    elif [ "$value" -le 0 -o "$value" -gt 1440 ]; then
+    elif [ "$value" -lt 0 -o "$value" -gt 1440 ]; then
         echo "$0: Value out of range: $1" >&2
         exit 1
     fi
@@ -149,6 +170,6 @@ else
         exit 1
     fi
 
-    echo "$0: Setting $USERSDIR/$user/$file.$ext to $value"
-    echo $value > $USERSDIR/$user/$file.$ext
+    echo "$0: Setting $USERSDIR/$user/$file$ext to $value"
+    echo $value > $USERSDIR/$user/$file$ext
 fi

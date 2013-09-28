@@ -4,7 +4,7 @@
 .\" First parameter, NAME, should be all caps
 .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
 .\" other parameters are allowed: see man(7), man(1)
-.TH PARENTROL SECTION "September  8, 2013"
+.TH PARENTROL 8 "September  8, 2013"
 .\" Please adjust this date whenever revising the manpage.
 .\"
 .\" Some roff macros, for reference:
@@ -18,39 +18,54 @@
 .\" .sp <n>    insert n+1 empty lines
 .\" for manpage-specific macros, see man(7)
 .SH NAME
-parentrol \- program to do something
+parentrol \- parental control
 .SH SYNOPSIS
 .B parentrol
-.RI [ options ] " files" ...
+.RI help
 .br
-.B bar
-.RI [ options ] " files" ...
-.SH DESCRIPTION
-This manual page documents briefly the
 .B parentrol
-and
-.B bar
-commands.
+.RI <user> " " <file> " " [ <ext> ] " " <value>
+.br
+.B parentrol
+.RI <user> " " <file> " " [ <ext> ] " " remove
+.br
+.B parentrol
+.RI <user> " " create
+.br
+.B parentrol
+.RI <user> " " remove
+.SH DESCRIPTION
+The
+.B parentrol
+command manages the user files used by Parentrol to monitor users time.
 .PP
 .\" TeX users may be more comfortable with the \fB<whatever>\fP and
 .\" \fI<whatever>\fP escape sequences to invode bold face and italics,
 .\" respectively.
-\fBparentrol\fP is a program that...
+\fBparentrol\fP is a program that controls the time users may spend on the computer.
 .SH OPTIONS
 These programs follow the usual GNU command line syntax, with long
 options starting with two dashes (`-').
 A summary of options is included below.
 For a complete description, see the Info files.
 .TP
-.B \-h, \-\-help
+.B \-h, \-\-help, help
 Show summary of options.
 .TP
-.B \-v, \-\-version
-Show version of program.
-.SH SEE ALSO
-.BR bar (1),
-.BR baz (1).
-.br
-The programs are documented fully by
-.IR "The Rise and Fall of a Fooish Bar" ,
-available via the Info system.
+.B <user>
+The login name of the user
+.TP
+.B <file>
+The name of the parentrol contorl file to modify, one of:
+.B starttime
+.B endtime
+.B maxtime
+.B gracetime
+.TP
+.B <ext>
+The name of the extension: either a week day, or
+.B override
+or not set for default values
+.TP
+.B <value>
+The time to set: either in hours/minutes (HH:MM) or in minutes.

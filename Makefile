@@ -5,6 +5,7 @@ build:
 #	nothing to do
 
 install:
+	install -d $(DESTDIR)/usr/sbin
 	install -d $(DESTDIR)/usr/share/parentrol
 	install -d $(DESTDIR)/etc/parentrol
 	install -d $(DESTDIR)/etc/cron.d
@@ -16,3 +17,4 @@ install:
 	install -m 0644 cron.d/parentrol $(DESTDIR)/etc/cron.d/
 	install -m 0644 logrotate.d/parentrol $(DESTDIR)/etc/logrotate.d/
 	install -m 0644 defaults/parentrol $(DESTDIR)/etc/default/
+	install -m 0700 parentrol $(DESTDIR)/usr/sbin
