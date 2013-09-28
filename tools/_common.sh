@@ -1,8 +1,9 @@
 umask 077
+export LANG=C
 export NOW=$(date +'%H * 60 + %M' | bc)
+export DAY=$(date +'%a')
 export LOG=${LOG:-/var/log/parentrol.log}
 export TMPDIR=${TMPDIR:-/tmp}/parentrol.$(id -u)
-export LANG=C
 
 mkdir -p $TMPDIR
 
@@ -97,13 +98,13 @@ function check_logged_in_user {
     local ss_count
     local login_time
 
-    ss_count=$(count_screensaver $user) || return 0
-
     login_time=$(
         last -R $user | grep "$(date +'%a %b %_d')" | $TOOLSDIR/_login_time.awk
     )
 
-    log "$user: login_time=$login_time -- ss_count=$ss_count"
+    log "$user: login_time=$login_time"
+
+    ss_count=$(count_screensaver $user) || return 0
 
     if [ $NOW -lt $starttime ]; then
         kill_user $user "too early"
@@ -152,8 +153,7 @@ function check_user {
     fi
 
     if last -R $user | grep -q "$(date +'%a %b %_d')" ; then
-        # user currently not logged in
-        log "$user not logged in"
+        log "$user logged in and out today"
     elif [ $NOW -lt $starttime ]; then
         log "$user cannot log in yet (too early)"
         $DRY_RUN || passwd -lq $user
@@ -161,10 +161,11 @@ function check_user {
         log "$user cannot log in anymore (too late)"
         $DRY_RUN || passwd -lq $user
     else
-        log "$user allowed, not logged in"
+        log "$user allowed, not logged in yet today"
+
         # (always do it to return to sane defaults)
         $DRY_RUN || passwd -uq $user
-        rm -f $TMPDIR/$user.flag
+        rm -f $TMPDIR/$user.flag $TMPDIR/$user.screensaver
     fi
 }
 
@@ -172,7 +173,11 @@ function cat_or_default {
     local file=$1
     local default=$2
 
-    if [ -e $file ]; then
+    if [ -e $file.ovr ]; then
+        cat $file.ovr
+    elif [ -e $file.$DAY ]; then
+        cat $file.$DAY
+    elif [ -e $file ]; then
         cat $file
     else
         echo $default

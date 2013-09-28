@@ -20,7 +20,7 @@ test -d $ETCDIR/parentrol/users.d || {
 }
 
 log "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-log "Starting parentrol checking session (NOW=$NOW)"
+log "Starting parentrol checking session (NOW=$NOW DAY=$DAY)"
 
 pids=""
 for userdef in $ETCDIR/parentrol/users.d/*; do
