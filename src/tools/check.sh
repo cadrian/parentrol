@@ -44,7 +44,7 @@ for userdef in $ETCDIR/parentrol/users.d/*; do
     test -d $userdef && {
         user=$(basename $userdef)
 
-        maxtime=$(cat_or_default $userdef/maxtime $((2 * 60)))
+        maxtime=$(cat_or_default $userdef/maxtime 120)
         gracetime=$(cat_or_default $userdef/gracetime 5)
         starttime=$(cat_or_default $userdef/starttime 0)
         endtime=$(cat_or_default $userdef/endtime $((24 * 60)))

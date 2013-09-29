@@ -24,7 +24,7 @@ _parentrol_complete()
         2)
             user=${COMP_WORDS[1]}
             if [ -d /etc/parentrol/users.d/$user ]; then
-                COMPREPLY=($(compgen -W "remove starttime endtime maxtime gracetime" -- "$cur"))
+                COMPREPLY=($(compgen -W "show remove starttime endtime maxtime gracetime" -- "$cur"))
             else
                 COMPREPLY=($(compgen -W create -- "$cur"))
             fi

@@ -54,6 +54,10 @@ $0 <user> remove
     Remove the user
     <user>  the login of a limited user
 
+$0 <user> show
+    Show the user control files
+    <user>  the login of a limited user
+
 $0 help
     This help
 
@@ -75,11 +79,61 @@ if [ ! -d $USERSDIR/$user ]; then
     echo "$0: Unknown user $user" >&2
     exit 1
 fi
-if [ "$2" == remove ]; then
-    echo "$0: Removing $USERSDIR/$user"
-    rm -rf $USERSDIR/$user
-    exit 0
-fi
+case "$2" in
+    remove)
+        echo "$0: Removing $USERSDIR/$user"
+        rm -rf $USERSDIR/$user
+        exit 0
+        ;;
+    show)
+        function cat_or_default {
+            local file=$1
+            local ext=$2
+            local default=$3
+            {
+                if [ -e $file.ovr ]; then
+                    cat $file.ovr
+                elif [ -e $file$ext ]; then
+                    cat $file$ext
+                elif [ -e $file ]; then
+                    cat $file
+                else
+                    echo $default
+                fi
+            } | awk '{printf("%02d:%02d", $0/60, $0%60)}'
+            if [ -e $file.ovr ]; then
+                echo ' (overridden)'
+            elif [ -e $file$ext ]; then
+                echo
+            elif [ -e $file ]; then
+                echo ' (standard)'
+            else
+                echo ' (default)'
+            fi
+        }
+
+        echo
+        format=" %-9s | %-20s %-20s %-20s %-20s\n"
+        printf "$format" Day Start End Max Grace
+        echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+        while read ext day; do
+            starttime=$(cat_or_default $USERSDIR/$user/starttime $ext 0)
+            endtime=$(cat_or_default $USERSDIR/$user/endtime $ext 1440)
+            maxtime=$(cat_or_default $USERSDIR/$user/maxtime $ext 120)
+            gracetime=$(cat_or_default $USERSDIR/$user/gracetime $ext 5)
+            printf "$format" "$day" "$starttime" "$endtime" "$maxtime" "$gracetime"
+        done <<EOF
+.Mon Monday
+.Tue Tuesday
+.Wed Wednesday
+.Thu Thursday
+.Fri Friday
+.Sat Saturday
+.Sun Sunday
+EOF
+        echo
+        exit
+esac
 
 shift
 
