@@ -1,3 +1,15 @@
+_parentrol_times()
+{
+    for h in $(seq 24); do
+        if [ $h -lt 10 ]; then
+            h=0$h
+        fi
+        for m in 00 15 30 45; do
+            echo $h:$m
+        done
+    done
+}
+
 _parentrol_complete()
 {
     local cur
@@ -22,7 +34,21 @@ _parentrol_complete()
             file=${COMP_WORDS[2]}
             case "$file" in
                 starttime|endtime|maxtime|gracetime)
-                    COMPREPLY=($(compgen -W "Monday Tuesday Wednesday Thursday Friday Saturday Sunday Override" -- "$cur"))
+                    COMPREPLY=($(compgen -W "Monday Tuesday Wednesday Thursday Friday Saturday Sunday Override remove $(_parentrol_times)" -- "$cur"))
+                    ;;
+            esac
+            ;;
+        4)
+            user=${COMP_WORDS[1]}
+            file=${COMP_WORDS[2]}
+            ext=${COMP_WORDS[3]}
+            case "$file" in
+                starttime|endtime|maxtime|gracetime)
+                    case "$ext" in
+                        Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Override)
+                            COMPREPLY=($(compgen -W "remove $(_parentrol_times)" -- "$cur"))
+                            ;;
+                    esac
                     ;;
             esac
     esac
