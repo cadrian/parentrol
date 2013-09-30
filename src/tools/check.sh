@@ -21,6 +21,7 @@ export DRY_RUN=${DRY_RUN:-true}
 export ACTIVE=${ACTIVE:-true}
 export TOOLSDIR=${TOOLSDIR:-$(dirname $(readlink -f $0))}
 export ETCDIR=${ETCDIR:-$(dirname $(readlink -f $0))}
+export LOCKDIR=${LOCKDIR:-$(dirname $(readlink -f $0))}
 
 test -e $ETCDIR/default/parentrol && . $ETCDIR/default/parentrol
 
@@ -33,6 +34,11 @@ $ACTIVE || {
 
 test -d $ETCDIR/parentrol/users.d || {
     log "No users to watch"
+    exit 0
+}
+
+/usr/bin/dotlockfile -l -r 3 -p $LOCKDIR/parentrol.lock || {
+    log "**** parentrol locked!"
     exit 0
 }
 
@@ -55,5 +61,7 @@ for userdef in $ETCDIR/parentrol/users.d/*; do
 done
 
 wait $pids
+
+/usr/bin/dotlockfile -u $LOCKDIR/parentrol.lock
 
 log "Finished."
