@@ -53,9 +53,12 @@ function kill_user {
     display=$(get_display $user) && {
         $DRY_RUN || {
             passwd -lq $user
-            su $user -c "DISPLAY=$display gnome-session-quit --logout --no-prompt"
-            sleep 10
-            slay -clean $user
+            {
+                su $user -c "DISPLAY=$display gnome-session-quit --logout --no-prompt"
+                sleep 10
+                slay -clean $user
+            } >/dev/null 2>&1
+            echo "Slayed user: $user" >&2 # will be mailed by cron
         }
     }
 }
