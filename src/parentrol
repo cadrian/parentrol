@@ -17,7 +17,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-USERSDIR=${USERSDIR:-/etc/parentrol/users.d}
+USERSDIR=${USERSDIR:-$(
+        if [ -f /etc/parentrol/profile ]; then
+            echo /etc/parentrol/$(< /etc/parentrol/profile)/users.d
+        else
+            echo /etc/parentrol/users.d
+        fi
+)}
 
 case "$1" in
     help|--help|-h|-?)

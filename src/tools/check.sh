@@ -46,7 +46,13 @@ log "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 log "Starting parentrol checking session (NOW=$NOW DAY=$DAY)"
 
 pids=""
-for userdef in $ETCDIR/parentrol/users.d/*; do
+for userdef in $(
+    if [ -f $ETCDIR/parentrol/profile ]; then
+        echo $ETCDIR/parentrol/$(< $ETCDIR/parentrol/profile)/users.d/*
+    else
+        echo $ETCDIR/parentrol/users.d/*
+    fi
+); do
     test -d $userdef && {
         user=$(basename $userdef)
 
