@@ -7,6 +7,7 @@ if [ $(id -u) == 0 ]; then
     exit 1
 fi
 
+export ETCDIR=${ETCDIR:-/etc}
 test -e $ETCDIR/default/parentrol && . $ETCDIR/default/parentrol
 export TOOLSDIR=${TOOLSDIR:-$(dirname $(readlink -f $0))}
 export PARENTROLLER_DIR=${PARENTROLLER_DIR:-/tmp/parentroller}
@@ -18,17 +19,18 @@ case x"$1" in
             exit 1
         fi
 
-        file=$(<"$2")
+        file=$(<"$PARENTROLLER_DIR/$2")
         if [ -e "$file" ]; then
             echo "File $file must not exist!" >&2
             exit 1
         fi
-        dbus-send --session --dest=org.gnome.ScreenSaver --type=method_call --print-reply /org/gnome/ScreenSaver org.gnome.ScreenSaver.GetActive > "$file"
-        rm -f "$2".lock
+        dbus-send --session --dest=org.gnome.ScreenSaver --type=method_call --print-reply --reply-timeout=5000 /org/gnome/ScreenSaver org.gnome.ScreenSaver.GetActive > "$file" 2>&1
+        rm -f "$PARENTROLLER_DIR/$2".lock
         ;;
 
     x)
-        inoticoming --foreground $PARENTROLLER_DIR --chdir $PARENTROLLER_DIR --suffix $(id -un).saver $0 -saver {} \;
+        log="$PARENTROLLER_DIR/$(id -un).log"
+        inoticoming --foreground $PARENTROLLER_DIR --regexp "^$(id -un).saver$" $0 -saver {} \; >"$log" 2>&1
         ;;
 
     *)

@@ -89,8 +89,8 @@ function check_screensaver {
         #I'd have like the code below to work, but it does not work since gnome 3.8
         #su $user -c "DISPLAY=$display dbus-send --session --dest=org.gnome.ScreenSaver --type=method_call --print-reply /org/gnome/ScreenSaver org.gnome.ScreenSaver.GetActive" 2>/dev/null | grep -q "boolean true" && return 0
 
-        ps faxu | grep '^$user ' | cut -c65- | grep ^$TOOLSDIR/'parentroller.sh$' || {
-            echo "Parentroller for user $user seems not to be running!" >&2 # will be mailed by cron
+        ps axu | egrep "^$user[[:space:]]" | cut -c66- | egrep -q '^(/bin/bash )?'${TOOLSDIR%/}'/parentroller.sh$' || {
+            echo "Parentroller for user $user seems not to be running (in $TOOLSDIR)!" >&2 # will be mailed by cron
             log "Error: parentroller for user $user seems not to be running. Considering screensaver inactive."
             return 1
         }
@@ -103,14 +103,30 @@ function check_screensaver {
         }
         chown $user:$user $lock # will be removed by parentroller, hence it must belong to the right user
         echo $saver.data > $saver # triggers inotify => the user's parentroller
+        chmod a+r $saver
 
         /usr/bin/dotlockfile -l -r 3 $lock || {
             log "$lock not removed by user, parentroller taking too long? Considering screensaver inactive."
             rm -f $saver*
             return 1
         }
-        if grep -q "boolean true" $saver.data; then
+        log $(ls $saver*)
+        test -r $saver.data || {
+            log "No data returned by parentroller of $user. Considering screensaver inactive."
             rm -f $saver*
+            return 1
+        }
+        while read line; do
+            log " | $line"
+        done < $saver.data
+        if grep -q "boolean true" $saver.data; then
+            log "Screensaver is running for $user!"
+            rm -f $saver*
+            return 0
+        elif grep -q '^Error org.freedesktop.DBus.Error.NoReply:' $saver.data; then
+            # Looks like the dbus daemon refuses to answer when not on the right console
+            log "Screensaver check failed for $user, certainly because the virtual console is not active"
+            rm -rf $saver*
             return 0
         fi
         rm -f $saver*
@@ -169,7 +185,7 @@ function check_logged_in_user {
         if [ $(($login_time - $ss_count)) -gt $(($maxtime + 1)) ]; then
             kill_user $user "time expired"
             return 0
-        elif [ $login_time -gt $(($maxtime - $gracetime - 1)) -o $NOW -gt $(($endtime - $gracetime - 1)) ]; then
+        elif [ $(($login_time - $ss_count)) -gt $(($maxtime - $gracetime - 1)) -o $NOW -gt $(($endtime - $gracetime - 1)) ]; then
             if [ -e $TMPDIR/$user.flag ]; then
                 log "$user already warned"
             else
@@ -181,6 +197,28 @@ function check_logged_in_user {
     fi
 
     return 1
+}
+
+function ensure_parentroller {
+    local user=$1
+    local desktop=/home/$user/.config/autostart/parentroller.sh.desktop
+
+    test -e $desktop || {
+        cat > $desktop <<EOF
+[Desktop Entry]
+Type=Application
+Exec=/usr/share/parentrol/parentroller.sh
+Hidden=false
+NoDisplay=false
+Terminal=false
+X-GNOME-Autostart-enabled=true
+Name[fr_FR]=Parentroller
+Name=Parentroller
+Comment=Parentroller
+EOF
+
+        chown $user:$user $desktop
+    }
 }
 
 function check_user {
@@ -195,6 +233,8 @@ function check_user {
     last -R $user | grep "still logged in" | while read line; do
         log " | $line"
     done
+
+    ensure_parentroller $user
 
     if last -R $user | grep -v "$(date +'%a %b %_d')" | grep -q "still logged in" ; then
         kill_user $user "still logged in since yesterday"
