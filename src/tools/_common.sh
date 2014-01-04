@@ -23,8 +23,10 @@ export NOW=$(date +'%H * 60 + %M' | bc)
 export DAY=$(date +'%a')
 export LOG=${LOG:-/var/log/parentrol.log}
 export TMPDIR=${TMPDIR:-/tmp}/parentrol.$(id -u)
+export PARENTROLLER_DIR=${PARENTROLLER_DIR:-/tmp/parentroller}
 
-mkdir -p $TMPDIR
+mkdir -p $TMPDIR $PARENTROLLER_DIR
+chmod 1777 $PARENTROLLER_DIR
 
 function log {
     echo $(date +'%Y/%m/%d %H:%M:%S') "$@" >> $LOG
@@ -79,10 +81,39 @@ function warn_user {
 function check_screensaver {
     local user=$1
     local display
+    local saver
+    local lock
 
     log "Checking screensaver of $user"
     display=$(get_display $user) && {
-        su $user -c "DISPLAY=$display dbus-send --session --dest=org.gnome.ScreenSaver --type=method_call --print-reply /org/gnome/ScreenSaver org.gnome.ScreenSaver.GetActive" 2>/dev/null | grep -q "boolean true" && return 0
+        #I'd have like the code below to work, but it does not work since gnome 3.8
+        #su $user -c "DISPLAY=$display dbus-send --session --dest=org.gnome.ScreenSaver --type=method_call --print-reply /org/gnome/ScreenSaver org.gnome.ScreenSaver.GetActive" 2>/dev/null | grep -q "boolean true" && return 0
+
+        ps faxu | grep '^$user ' | cut -c65- | grep ^$TOOLSDIR/'parentroller.sh$' || {
+            echo "Parentroller for user $user seems not to be running!" >&2 # will be mailed by cron
+            log "Error: parentroller for user $user seems not to be running. Considering screensaver inactive."
+            return 1
+        }
+
+        saver=$PARENTROLLER_DIR/${user}.saver
+        rm -f $saver*
+        lock=$saver.lock
+        /usr/bin/dotlockfile -l -r 3 $lock || {
+            log "Error: $lock already existing?? Ignoring"
+        }
+        chown $user:$user $lock # will be removed by parentroller, hence it must belong to the right user
+        echo $saver.data > $saver # triggers inotify => the user's parentroller
+
+        /usr/bin/dotlockfile -l -r 3 $lock || {
+            log "$lock not removed by user, parentroller taking too long? Considering screensaver inactive."
+            rm -f $saver*
+            return 1
+        }
+        if grep -q "boolean true" $saver.data; then
+            rm -f $saver*
+            return 0
+        fi
+        rm -f $saver*
     }
     return 1
 }
@@ -126,25 +157,27 @@ function check_logged_in_user {
 
     log "$user: login_time=$login_time"
 
-    ss_count=$(count_screensaver $user) || return 0
-
     if [ $NOW -lt $starttime ]; then
         kill_user $user "too early"
         return 0
     elif [ $NOW -gt $endtime ]; then
         kill_user $user "too late"
         return 0
-    elif [ $(($login_time - $ss_count)) -gt $(($maxtime + 1)) ]; then
-        kill_user $user "time expired"
-        return 0
-    elif [ $login_time -gt $(($maxtime - $gracetime - 1)) -o $NOW -gt $(($endtime - $gracetime - 1)) ]; then
-        if [ -e $TMPDIR/$user.flag ]; then
-            log "$user already warned"
-        else
-            touch $TMPDIR/$user.flag
-            warn_user $user $gracetime
+    else
+        ss_count=$(count_screensaver $user) || return 0
+
+        if [ $(($login_time - $ss_count)) -gt $(($maxtime + 1)) ]; then
+            kill_user $user "time expired"
+            return 0
+        elif [ $login_time -gt $(($maxtime - $gracetime - 1)) -o $NOW -gt $(($endtime - $gracetime - 1)) ]; then
+            if [ -e $TMPDIR/$user.flag ]; then
+                log "$user already warned"
+            else
+                touch $TMPDIR/$user.flag
+                warn_user $user $gracetime
+            fi
+            return 0
         fi
-        return 0
     fi
 
     return 1

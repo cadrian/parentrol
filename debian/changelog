@@ -1,3 +1,9 @@
+parentrol (0.0.4) unstable; urgency=low
+
+  * Better screensaver management (alas, relying on a user action)
+
+ -- Cyril Adrian <cyril.adrian@gmail.com>  Sat, 04 Jan 2014 14:10:39 +0100
+
 parentrol (0.0.3) unstable; urgency=low
 
   * Profiles management

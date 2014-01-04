@@ -14,6 +14,7 @@ install:
 	install -d $(DESTDIR)/etc/default
 	install -m 0700 src/parentrol $(DESTDIR)/usr/sbin
 	install -m 0544 src/tools/check.sh $(DESTDIR)/usr/share/parentrol/
+	install -m 0544 src/tools/parentroller.sh $(DESTDIR)/usr/share/parentrol/
 	install -m 0644 src/tools/_common.sh $(DESTDIR)/usr/share/parentrol/
 	install -m 0544 src/tools/_login_time.awk $(DESTDIR)/usr/share/parentrol/
 	install -m 0644 etc/bash_completion.d/parentrol $(DESTDIR)/etc/bash_completion.d/

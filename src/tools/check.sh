@@ -22,8 +22,10 @@ export ACTIVE=${ACTIVE:-true}
 export TOOLSDIR=${TOOLSDIR:-$(dirname $(readlink -f $0))}
 export ETCDIR=${ETCDIR:-$(dirname $(readlink -f $0))}
 export LOCKDIR=${LOCKDIR:-$(dirname $(readlink -f $0))}
+export PARENTROLLER_DIR=${PARENTROLLER_DIR:-/tmp/parentroller}
 
 test -e $ETCDIR/default/parentrol && . $ETCDIR/default/parentrol
+test -d $PARENTROLLER_DIR || mkdir -p $PARENTROLLER_DIR
 
 . $TOOLSDIR/_common.sh
 

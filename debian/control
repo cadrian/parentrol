@@ -3,14 +3,14 @@ Section: admin
 Priority: extra
 Maintainer: Cyril Adrian <cyril.adrian@gmail.com>
 Build-Depends: debhelper (>= 8.0.0)
-Standards-Version: 3.9.4
+Standards-Version: 3.9.5
 #Homepage: <insert the upstream URL, if relevant>
 #Vcs-Git: git://git.debian.org/collab-maint/parentrol.git
 #Vcs-Browser: http://git.debian.org/?p=collab-maint/parentrol.git;a=summary
 
 Package: parentrol
 Architecture: all
-Depends: ${shlibs:Depends}, ${misc:Depends}, logrotate, cron, bash (>= 4.2), bc, liblockfile-bin
+Depends: ${shlibs:Depends}, ${misc:Depends}, logrotate, cron, bash (>= 4.2), bc, liblockfile-bin, inoticoming
 Recommends: bash-completion
 Description: Parental time control
  Time control to let children use the computer only at known times.
