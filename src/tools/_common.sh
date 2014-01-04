@@ -207,12 +207,11 @@ function ensure_parentroller {
         cat > $desktop <<EOF
 [Desktop Entry]
 Type=Application
-Exec=/usr/share/parentrol/parentroller.sh
+Exec=${TOOLSDIR%/}/parentroller.sh
 Hidden=false
 NoDisplay=false
 Terminal=false
 X-GNOME-Autostart-enabled=true
-Name[fr_FR]=Parentroller
 Name=Parentroller
 Comment=Parentroller
 EOF
