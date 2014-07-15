@@ -107,7 +107,7 @@ function check_screensaver {
         /usr/bin/dotlockfile -l -r 3 $lock || {
             log "Error: $lock already existing?? Ignoring"
         }
-        chown $user:$user $lock # will be removed by parentroller, hence it must belong to the right user
+        chown $user:$user $lock # will be removed by parentroller, therefore it must belong to the right user
         echo $saver.data > $saver # triggers inotify => the user's parentroller
         chmod a+r $saver
 
