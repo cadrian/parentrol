@@ -1,4 +1,4 @@
-/var/log/parentrol.log {
+/var/log/parentrol.d/check.log {
     daily
     missingok
     rotate 7

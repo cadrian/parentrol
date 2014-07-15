@@ -1,7 +1,7 @@
 # to be sourced
 
 # Parentrol: parental control
-# Copyright (C) 2013 Cyril Adrian <cyril.adrian@gmail.com>
+# Copyright (C) 2013-2014 Cyril Adrian <cyril.adrian@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,11 +21,11 @@ umask 077
 export LANG=C
 export NOW=$(date +'%H * 60 + %M' | bc)
 export DAY=$(date +'%a')
-export LOG=${LOG:-/var/log/parentrol.log}
+export LOG=${LOG:-/var/log/parentrol.d/check.log}
 export TMPDIR=${TMPDIR:-/tmp}/parentrol.$(id -u)
 export PARENTROLLER_DIR=${PARENTROLLER_DIR:-/tmp/parentroller}
 
-mkdir -p $TMPDIR $PARENTROLLER_DIR
+mkdir -p $TMPDIR $PARENTROLLER_DIR $(dirname $LOG)
 chmod 1777 $PARENTROLLER_DIR
 
 function log {
@@ -36,6 +36,12 @@ function get_display {
     local user=$1
     local tty
 
+    tty=$(last -R $user | grep "still logged in" | awk '$2 ~ /:[0-9]+/ {print $2}') && {
+        test -n "$tty" && {
+            echo $tty
+            return 0
+        }
+    }
     tty=$(last -R $user | grep "still logged in" | awk '$2 ~ /tty[0-9]+/ {print $2}') && {
         test -n "$tty" && {
             ps -f -C Xorg | awk '$6 == "'$tty'" { print $9 }'
@@ -56,7 +62,7 @@ function kill_user {
         $DRY_RUN || {
             passwd -lq $user
             {
-                su $user -c "DISPLAY=$display gnome-session-quit --logout --no-prompt"
+                touch $PARENTROLLER_DIR/${user}.quit
                 sleep 10
                 slay -clean $user
             } >/dev/null 2>&1
@@ -171,7 +177,7 @@ function check_logged_in_user {
         last -R $user | grep "$(date +'%a %b %_d')" | $TOOLSDIR/_login_time.awk
     )
 
-    log "$user: login_time=$login_time"
+    log "$user: login_time=$login_time ("$(last -R $user | grep "$(date +'%a %b %_d')")")"
 
     if [ $NOW -lt $starttime ]; then
         kill_user $user "too early"
@@ -216,6 +222,7 @@ Name=Parentroller
 Comment=Parentroller
 EOF
 
+        chmod 750 $desktop
         chown $user:$user $desktop
     }
 }

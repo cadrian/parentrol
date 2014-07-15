@@ -1,7 +1,7 @@
 #!/usr/bin/awk -f
 
 # Parentrol: parental control
-# Copyright (C) 2013 Cyril Adrian <cyril.adrian@gmail.com>
+# Copyright (C) 2013-2014 Cyril Adrian <cyril.adrian@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,6 +23,17 @@ BEGIN {
     t = 0;
 }
 
+$2 ~ /:[0-9]+/ && /still logged in/ {
+    split($6, a, ":");
+    H = strtonum(a[1]);
+    M = strtonum(a[2]);
+    if ((H < h) || (H == h && M < m)) {
+        h = H;
+        m = M;
+    }
+    next;
+}
+
 $2 ~ /tty[0-9]+/ && /still logged in/ {
     split($6, a, ":");
     H = strtonum(a[1]);
@@ -31,6 +42,7 @@ $2 ~ /tty[0-9]+/ && /still logged in/ {
         h = H;
         m = M;
     }
+    next;
 }
 
 $2 ~ /tty[0-9]+/ && $7 == "-" && $8 ~ /[0-9]+:[0-9]+/ {
@@ -41,9 +53,6 @@ $2 ~ /tty[0-9]+/ && $7 == "-" && $8 ~ /[0-9]+:[0-9]+/ {
     EH = strtonum(a[1]);
     EM = strtonum(a[2]);
     t += (EH * 60 + EM) - (BH * 60 + BM);
-}
-
-{
     next;
 }
 
