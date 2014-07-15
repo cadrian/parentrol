@@ -59,8 +59,8 @@ case x"$1" in
         user=$(id -un)
         log="$PARENTROLLER_LOGDIR/$user.log"
         rm -f $PARENTROLLER_DIR/$user.saver $PARENTROLLER_DIR/$user.quit
-        inoticoming --foreground $PARENTROLLER_DIR --regexp "^$user.saver$" $0 -saver {} \; >"$log" 2>&1
-        inoticoming --foreground $PARENTROLLER_DIR --regexp "^$user.quit$" $0 -quit {} \; >"$log" 2>&1
+        inoticoming --logfile "$log" $PARENTROLLER_DIR --regexp "^$user.saver$" $0 -saver {} \;
+        inoticoming --logfile "$log" $PARENTROLLER_DIR --regexp "^$user.quit$" $0 -quit {} \;
         ;;
 
     *)
