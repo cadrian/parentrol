@@ -51,16 +51,20 @@ case x"$1" in
             echo "File $PARENTROLLER_DIR/$2 not found!" >&2
             exit 1
         fi
-        echo "Logging out of GNOME session."
+        echo $(date -R)": Logging out of GNOME session"
         gnome-session-quit --logout --no-prompt
         ;;
 
     x)
         user=$(id -un)
         log="$PARENTROLLER_LOGDIR/$user.log"
-        rm -f $PARENTROLLER_DIR/$user.saver $PARENTROLLER_DIR/$user.quit
-        inoticoming --logfile "$log" $PARENTROLLER_DIR --regexp "^$user.saver$" $0 -saver {} \;
-        inoticoming --logfile "$log" $PARENTROLLER_DIR --regexp "^$user.quit$" $0 -quit {} \;
+        {
+            echo
+            echo $(date -R)": Starting parentroller"
+            rm -f $PARENTROLLER_DIR/$user.saver $PARENTROLLER_DIR/$user.quit
+            inoticoming --logfile "$log" $PARENTROLLER_DIR --regexp "^$user.saver$" $0 -saver {} \;
+            inoticoming --logfile "$log" $PARENTROLLER_DIR --regexp "^$user.quit$" $0 -quit {} \;
+        } >$log 2>&1
         ;;
 
     *)

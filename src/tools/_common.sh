@@ -26,7 +26,7 @@ export TMPDIR=${TMPDIR:-/tmp}/parentrol.$(id -u)
 export PARENTROLLER_DIR=${PARENTROLLER_DIR:-/tmp/parentroller}
 
 mkdir -p $TMPDIR $PARENTROLLER_DIR $(dirname $LOG)
-chmod 1777 $PARENTROLLER_DIR
+chmod 1777 $PARENTROLLER_DIR $(dirname $LOG)
 
 function log {
     echo $(date +'%Y/%m/%d %H:%M:%S') "$@" >> $LOG
