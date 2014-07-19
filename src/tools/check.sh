@@ -17,15 +17,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+export ETCDIR=${ETCDIR:-/etc}
+test -e $ETCDIR/default/parentrol && . $ETCDIR/default/parentrol
+
 export DRY_RUN=${DRY_RUN:-true}
 export ACTIVE=${ACTIVE:-true}
 export TOOLSDIR=${TOOLSDIR:-$(dirname $(readlink -f $0))}
-export ETCDIR=${ETCDIR:-$(dirname $(readlink -f $0))}
 export LOCKDIR=${LOCKDIR:-$(dirname $(readlink -f $0))}
-export PARENTROLLER_DIR=${PARENTROLLER_DIR:-/tmp/parentroller}
-
-test -e $ETCDIR/default/parentrol && . $ETCDIR/default/parentrol
-test -d $PARENTROLLER_DIR || mkdir -p $PARENTROLLER_DIR
 
 . $TOOLSDIR/_common.sh
 

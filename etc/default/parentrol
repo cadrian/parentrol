@@ -1,0 +1,17 @@
+# true to activate, false to deactivate (default: true)
+# ACTIVE=true
+
+# true to avoid actual changes, false to allow (default: true)
+DRY_RUN=false
+
+# default lock directory
+LOCKDIR=/var/lock
+
+# default tools directory
+# TOOLSDIR=/usr/share/parentrol
+
+# default tmp directory for parentroller (the per-user parentrol manager)
+# PARENTROLLER_DIR=/tmp/parentroller
+
+# default log directory for parentroller
+# PARENTROLLER_LOGDIR=/var/log/parentrol.d

@@ -1,3 +1,11 @@
+parentrol (0.0.6~rc1) unstable; urgency=low
+
+  * fix etc/default source directory
+  * be sure that the parentroller.sh script stays running for each managed user
+  * cleanup
+
+ -- Cyril Adrian <cyril.adrian@gmail.com>  Sat, 19 Jul 2014 13:15:00 +0200
+
 parentrol (0.0.5) unstable; urgency=low
 
   * Changes for Gnome 3.12

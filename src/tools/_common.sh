@@ -32,7 +32,40 @@ function log {
     echo $(date +'%Y/%m/%d %H:%M:%S') "$@" >> $LOG
 }
 
-function get_display {
+function check_parentroller {
+    local user=$1
+
+    ps axu | egrep "^$user[[:space:]]" | cut -c66- | egrep -q '^(/bin/bash )?'${TOOLSDIR%/}'/parentroller.sh$' || {
+        echo "Parentroller for user $user seems not to be running (in $TOOLSDIR)!" >&2 # will be mailed by cron
+        log "Error: parentroller for user $user seems not to be running."
+        return 1
+    }
+}
+
+function ensure_parentroller {
+    local user=$1
+    local desktop=/home/$user/.config/autostart/parentroller.sh.desktop
+
+    test -e $desktop || {
+        cat > $desktop <<EOF
+[Desktop Entry]
+Type=Application
+Name=Parentroller
+Exec=${TOOLSDIR%/}/parentroller.sh
+Hidden=false
+NoDisplay=false
+Terminal=false
+StartupNotify=false
+X-GNOME-Autostart-enabled=true
+Comment=Parentroller
+EOF
+
+        chmod 750 $desktop
+        chown $user:$user $desktop
+    }
+}
+
+function get_user_display {
     local user=$1
     local tty
 
@@ -58,12 +91,15 @@ function kill_user {
 
     shift
     log "**** Kill user: $user ($@)"
-    display=$(get_display $user) && {
+    display=$(get_user_display $user) && {
         $DRY_RUN || {
             passwd -lq $user
             {
-                touch $PARENTROLLER_DIR/${user}.quit
-                sleep 10
+                check_parentroller $user && {
+                    test -p $PARENTROLLER_DIR/${user}.run && echo "Parentrol: ask quit $user" >> $PARENTROLLER_DIR/${user}.run
+                    touch $PARENTROLLER_DIR/${user}.quit
+                    sleep 10
+                }
                 slay -clean $user
             } >/dev/null 2>&1
             echo "Slayed user: $user" >&2 # will be mailed by cron
@@ -77,7 +113,7 @@ function warn_user {
     local display
 
     log "**** Warn user: $user"
-    display=$(get_display $user) && {
+    display=$(get_user_display $user) && {
         $DRY_RUN || {
             su $user -c "DISPLAY=$display yad --title 'ATTENTION' --text='FIN DE SESSION DANS $gracetime MINUTES' --button=gtk-ok:0 --sticky --center --on-top --justify=center" &
         }
@@ -91,13 +127,9 @@ function check_screensaver {
     local lock
 
     log "Checking screensaver of $user"
-    display=$(get_display $user) && {
-        #I'd have like the code below to work, but it does not work since gnome 3.8
-        #su $user -c "DISPLAY=$display dbus-send --session --dest=org.gnome.ScreenSaver --type=method_call --print-reply /org/gnome/ScreenSaver org.gnome.ScreenSaver.GetActive" 2>/dev/null | grep -q "boolean true" && return 0
-
-        ps axu | egrep "^$user[[:space:]]" | cut -c66- | egrep -q '^(/bin/bash )?'${TOOLSDIR%/}'/parentroller.sh$' || {
-            echo "Parentroller for user $user seems not to be running (in $TOOLSDIR)!" >&2 # will be mailed by cron
-            log "Error: parentroller for user $user seems not to be running. Considering screensaver inactive."
+    display=$(get_user_display $user) && {
+        check_parentroller $user || {
+            log "Considering screensaver inactive."
             return 1
         }
 
@@ -205,29 +237,6 @@ function check_logged_in_user {
     return 1
 }
 
-function ensure_parentroller {
-    local user=$1
-    local desktop=/home/$user/.config/autostart/parentroller.sh.desktop
-
-    test -e $desktop || {
-        cat > $desktop <<EOF
-[Desktop Entry]
-Type=Application
-Name=Parentroller
-Exec=${TOOLSDIR%/}/parentroller.sh
-Hidden=false
-NoDisplay=false
-Terminal=false
-StartupNotify=false
-X-GNOME-Autostart-enabled=true
-Comment=Parentroller
-EOF
-
-        chmod 750 $desktop
-        chown $user:$user $desktop
-    }
-}
-
 function check_user {
     local user=$1
     local maxtime=$2
@@ -236,7 +245,7 @@ function check_user {
     local endtime=$5
 
     log "Checking $user ($starttime-$endtime: max $maxtime/$gracetime)"
-    log "Display of $user is" $(get_display $user)
+    log "Display of $user is" $(get_user_display $user)
     last -R $user | grep "still logged in" | while read line; do
         log " | $line"
     done

@@ -58,13 +58,24 @@ case x"$1" in
     x)
         user=$(id -un)
         log="$PARENTROLLER_LOGDIR/$user.log"
+        touch $log
+
         {
             echo
             echo $(date -R)": Starting parentroller"
             rm -f $PARENTROLLER_DIR/$user.saver $PARENTROLLER_DIR/$user.quit
-            inoticoming --logfile "$log" $PARENTROLLER_DIR --regexp "^$user.saver$" $0 -saver {} \;
-            inoticoming --logfile "$log" $PARENTROLLER_DIR --regexp "^$user.quit$" $0 -quit {} \;
-        } >$log 2>&1
+            inoticoming --stdout-to-log --stderr-to-log --logfile "$log" $PARENTROLLER_DIR --regexp "^$user.saver$" $0 -saver {} \;
+            inoticoming --stdout-to-log --stderr-to-log --logfile "$log" $PARENTROLLER_DIR --regexp "^$user.quit$" $0 -quit {} \;
+        } >>$log 2>&1
+
+        # The checker expects parentroller to be running.
+        # Make the process wait without using CPU:
+        rm -f $PARENTROLLER_DIR/$user.run && mkfifo $PARENTROLLER_DIR/$user.run
+        exec 3<> $PARENTROLLER_DIR/$user.run # fifo opened RW but never written to
+        while true; do
+            read run <&3
+            echo $run >>$log
+        done
         ;;
 
     *)

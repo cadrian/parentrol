@@ -20,4 +20,4 @@ install:
 	install -m 0644 etc/bash_completion.d/parentrol $(DESTDIR)/etc/bash_completion.d/
 	install -m 0644 etc/cron.d/parentrol $(DESTDIR)/etc/cron.d/
 	install -m 0644 etc/logrotate.d/parentrol $(DESTDIR)/etc/logrotate.d/
-	install -m 0644 etc/defaults/parentrol $(DESTDIR)/etc/default/
+	install -m 0644 etc/default/parentrol $(DESTDIR)/etc/default/
