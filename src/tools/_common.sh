@@ -24,9 +24,12 @@ export DAY=$(date +'%a')
 export LOG=${LOG:-/var/log/parentrol.d/check.log}
 export TMPDIR=${TMPDIR:-/tmp}/parentrol.$(id -u)
 export PARENTROLLER_DIR=${PARENTROLLER_DIR:-/tmp/parentroller}
+export PARENTROLLER_LOGDIR=${PARENTROLLER_LOGDIR:-/tmp/parentroller}
 
 mkdir -p $TMPDIR $PARENTROLLER_DIR $(dirname $LOG)
-chmod 1777 $PARENTROLLER_DIR $(dirname $LOG)
+chmod 1777 $PARENTROLLER_DIR
+chmod 755 $(dirname $LOG)
+chmod 644 $LOG
 
 function log {
     echo $(date +'%Y/%m/%d %H:%M:%S') "$@" >> $LOG
@@ -63,6 +66,11 @@ EOF
         chmod 750 $desktop
         chown $user:$user $desktop
     }
+
+    log="$PARENTROLLER_LOGDIR/$user.log"
+    touch "$log"
+    chown $user:$user "$log"
+    chmod 644 "$log"
 }
 
 function get_user_display {
@@ -129,7 +137,7 @@ function check_screensaver {
     log "Checking screensaver of $user"
     display=$(get_user_display $user) && {
         check_parentroller $user || {
-            log "Considering screensaver inactive."
+            log "Considering screensaver of $user inactive."
             return 1
         }
 
@@ -144,7 +152,7 @@ function check_screensaver {
         chmod a+r $saver
 
         /usr/bin/dotlockfile -l -r 3 $lock || {
-            log "$lock not removed by user, parentroller taking too long? Considering screensaver inactive."
+            log "$lock not removed by parentroller of $user... taking too long? Considering screensaver inactive."
             rm -f $saver*
             return 1
         }
@@ -163,7 +171,7 @@ function check_screensaver {
             return 0
         elif grep -q '^Error org.freedesktop.DBus.Error.NoReply:' $saver.data; then
             # Looks like the dbus daemon refuses to answer when not on the right console
-            log "Screensaver check failed for $user, certainly because the virtual console is not active"
+            log "Screensaver check failed for $user."
             rm -rf $saver*
             return 0
         fi

@@ -1,8 +1,10 @@
-parentrol (0.0.6~rc1) unstable; urgency=low
+parentrol (0.0.6~rc2) unstable; urgency=low
 
-  * fix etc/default source directory
+  * fix /etc/default/parentrol
   * be sure that the parentroller.sh script stays running for each managed user
   * cleanup
+  * logs cleanup
+  * tighter perms
 
  -- Cyril Adrian <cyril.adrian@gmail.com>  Sat, 19 Jul 2014 13:15:00 +0200
 
