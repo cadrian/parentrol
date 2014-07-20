@@ -67,8 +67,8 @@ case x"$1" in
             echo
             echo $(date -R)": Starting parentroller"
             rm -f "$PARENTROLLER_DIR/$user.saver" "$PARENTROLLER_DIR/$user.quit"
-            inoticoming --stdout-to-log --stderr-to-log --logfile "$log" $PARENTROLLER_DIR --regexp "^$user.saver$" $0 -saver {} \;
-            inoticoming --stdout-to-log --stderr-to-log --logfile "$log" $PARENTROLLER_DIR --regexp "^$user.quit$" $0 -quit {} \;
+            inoticoming --logfile "$log" $PARENTROLLER_DIR --stdout-to-log --stderr-to-log --regexp "^$user.saver$" $0 -saver {} \;
+            inoticoming --logfile "$log" $PARENTROLLER_DIR --stdout-to-log --stderr-to-log --regexp "^$user.quit$" $0 -quit {} \;
         } >>$log 2>&1
 
         # The checker expects parentroller to be running.
@@ -78,7 +78,7 @@ case x"$1" in
         exec 3<> "$run" # fifo opened RW but never written to by this process; hence, wait...
         while true; do
             read r <&3
-            echo $r >>$log
+            echo "|$r" >>$log
         done
         ;;
 

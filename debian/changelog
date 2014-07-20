@@ -1,4 +1,4 @@
-parentrol (0.0.6~rc2) unstable; urgency=low
+parentrol (0.0.6~rc3) unstable; urgency=low
 
   * fix /etc/default/parentrol
   * be sure that the parentroller.sh script stays running for each managed user
