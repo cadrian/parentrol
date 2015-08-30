@@ -31,6 +31,7 @@ export PARENTROLLER_DIR=${PARENTROLLER_DIR:-/tmp/parentroller}
 export PARENTROLLER_LOGDIR=${PARENTROLLER_LOGDIR:-/var/log/parentrol.d}
 
 function check_screensaver {
+    #gnome-screensaver-command -q
     dbus-send --session --dest=org.gnome.ScreenSaver --type=method_call --print-reply --reply-timeout=5000 /org/gnome/ScreenSaver org.gnome.ScreenSaver.GetActive
 }
 

@@ -103,21 +103,29 @@ function kill_user {
         $DRY_RUN || {
             local active_vt=$(fgconsole)
             local user_vt=$(grep "using VT number" /var/log/Xorg.${display#:}.log | egrep -o '[0-9]+$')
-
-            passwd -lq $user
-            {
-                check_parentroller $user && {
-                    test -p $PARENTROLLER_DIR/${user}.run && echo "Parentrol: ask quit $user" >> $PARENTROLLER_DIR/${user}.run
-                    touch $PARENTROLLER_DIR/${user}.quit
-                    sleep 2
-                }
-                slay -clean $user
-            } >/dev/null 2>&1
-            echo "Slayed user: $user" >&2 # will be mailed by cron
-
             if [[ $active_vt != $user_vt ]]; then
-                echo "Switching back to the active user"
-                chvt ${active_vt}
+                echo "User $user should be slain; waiting because s/he is not active."
+                if [ -e $TMPDIR/$user.slay ]; then
+                    log "$user already warned"
+                else
+                    touch $TMPDIR/$user.slay
+                    (
+                        while true; do
+                            su $user -c "DISPLAY=$display yad --title 'ATTENTION' --text='SESSION EXPIRÉE' --no-buttons --undecorated --fullscreen --sticky --center --on-top --justify=center"
+                        done
+                    ) &
+                fi
+            else
+                passwd -lq $user
+                {
+                    check_parentroller $user && {
+                        test -p $PARENTROLLER_DIR/${user}.run && echo "Parentrol: ask quit $user" >> $PARENTROLLER_DIR/${user}.run
+                        touch $PARENTROLLER_DIR/${user}.quit
+                        sleep 2
+                    }
+                    slay -clean $user
+                } >/dev/null 2>&1
+                echo "User $user slain!" >&2 # will be mailed by cron
             fi
         }
     }
@@ -131,7 +139,7 @@ function warn_user {
     log "**** Warn user: $user"
     display=$(get_user_display $user) && {
         $DRY_RUN || {
-            su $user -c "DISPLAY=$display yad --title 'ATTENTION' --text='FIN DE SESSION DANS $gracetime MINUTES' --button=gtk-ok:0 --sticky --center --on-top --justify=center" &
+            su $user -c "DISPLAY=$display yad --title 'ATTENTION' --text='FIN DE SESSION DANS $gracetime MINUTES' --button=gtk-ok:0 --undecorated --sticky --center --on-top --justify=center" &
         }
     }
 }
@@ -148,6 +156,14 @@ function check_screensaver {
             log "Considering screensaver of $user inactive."
             return 1
         }
+
+        local active_vt=$(fgconsole)
+        local user_vt=$(grep "using VT number" /var/log/Xorg.${display#:}.log | egrep -o '[0-9]+$')
+        if [[ $active_vt != $user_vt ]]; then
+            log "Active VT is $active_vt, $user's VT is $user_vt - obviously the user is not active."
+            # Hence behave as if the screensaver were active
+            return 0
+        fi
 
         saver=$PARENTROLLER_DIR/${user}.saver
         rm -f $saver*
@@ -173,12 +189,13 @@ function check_screensaver {
         while read line; do
             log " | $line"
         done < $saver.data
-        if grep -q "boolean true" $saver.data; then
+        if grep -q "boolean true" $saver.data || grep -q "The screensaver is active" $saver.data; then
             log "Screensaver is running for $user!"
             rm -f $saver*
             return 0
         elif grep -q '^Error org.freedesktop.DBus.Error.NoReply:' $saver.data; then
-            # Looks like the dbus daemon refuses to answer when not on the right console
+            # Looks like the dbus daemon refuses to answer when not on the right console.
+            # If we are not on the right console, we consider that the use is not active.
             log "Screensaver check failed for $user."
             rm -rf $saver*
             return 0
@@ -240,10 +257,10 @@ function check_logged_in_user {
             kill_user $user "time expired"
             return 0
         elif [ $(($login_time - $ss_count)) -gt $(($maxtime - $gracetime - 1)) -o $NOW -gt $(($endtime - $gracetime - 1)) ]; then
-            if [ -e $TMPDIR/$user.flag ]; then
+            if [ -e $TMPDIR/$user.warn ]; then
                 log "$user already warned"
             else
-                touch $TMPDIR/$user.flag
+                touch $TMPDIR/$user.warn
                 warn_user $user $gracetime
             fi
             return 0
@@ -292,7 +309,7 @@ function check_user {
 
         # (always do it to return to sane defaults)
         $DRY_RUN || passwd -uq $user
-        rm -f $TMPDIR/$user.flag $TMPDIR/$user.screensaver
+        rm -f $TMPDIR/$user.warn $TMPDIR/$user.slay $TMPDIR/$user.screensaver
     fi
 }
 
