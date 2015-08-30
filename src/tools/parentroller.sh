@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Parentrol: parental control
-# Copyright (C) 2013-2014 Cyril Adrian <cyril.adrian@gmail.com>
+# Copyright (C) 2013-2015 Cyril Adrian <cyril.adrian@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,6 +30,10 @@ export TOOLSDIR=${TOOLSDIR:-$(dirname $(readlink -f $0))}
 export PARENTROLLER_DIR=${PARENTROLLER_DIR:-/tmp/parentroller}
 export PARENTROLLER_LOGDIR=${PARENTROLLER_LOGDIR:-/var/log/parentrol.d}
 
+function check_screensaver {
+    dbus-send --session --dest=org.gnome.ScreenSaver --type=method_call --print-reply --reply-timeout=5000 /org/gnome/ScreenSaver org.gnome.ScreenSaver.GetActive
+}
+
 case x"$1" in
     x-saver)
         if [ ! -r "$PARENTROLLER_DIR/$2" ]; then
@@ -42,7 +46,7 @@ case x"$1" in
             echo "File $file must not exist!" >&2
             exit 1
         fi
-        dbus-send --session --dest=org.gnome.ScreenSaver --type=method_call --print-reply --reply-timeout=5000 /org/gnome/ScreenSaver org.gnome.ScreenSaver.GetActive > "$file" 2>&1
+        check_screensaver > "$file" 2>&1
         rm -f "$PARENTROLLER_DIR/$2".lock
         ;;
 
@@ -52,7 +56,7 @@ case x"$1" in
             exit 1
         fi
         echo $(date -R)": Logging out of GNOME session"
-        gnome-session-quit --logout --no-prompt
+        gnome-session-quit --logout --force --no-prompt
         ;;
 
     x)
@@ -67,8 +71,8 @@ case x"$1" in
             echo
             echo $(date -R)": Starting parentroller"
             rm -f "$PARENTROLLER_DIR/$user.saver" "$PARENTROLLER_DIR/$user.quit"
-            inoticoming --logfile "$log" $PARENTROLLER_DIR --stdout-to-log --stderr-to-log --regexp "^$user.saver$" $0 -saver {} \;
-            inoticoming --logfile "$log" $PARENTROLLER_DIR --stdout-to-log --stderr-to-log --regexp "^$user.quit$" $0 -quit {} \;
+            inoticoming --logfile "$log" --chdir $PARENTROLLER_DIR --stdout-to-log --stderr-to-log --regexp "^$user.saver$" $0 -saver {} \;
+            inoticoming --logfile "$log" --chdir $PARENTROLLER_DIR --stdout-to-log --stderr-to-log --regexp "^$user.quit$" $0 -quit {} \;
         } >>$log 2>&1
 
         # The checker expects parentroller to be running.

@@ -30,7 +30,7 @@ case "$1" in
         exec cat <<EOF
 
 Parentrol: parental control
-Copyright (C) 2013-2014 Cyril Adrian <cyril.adrian@gmail.com>
+Copyright (C) 2013-2015 Cyril Adrian <cyril.adrian@gmail.com>
 This program comes with ABSOLUTELY NO WARRANTY.
 This is free software, and you are welcome to redistribute it
 under certain conditions (see http://www.gnu.org/copyleft/gpl.html).

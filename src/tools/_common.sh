@@ -1,7 +1,7 @@
 # to be sourced
 
 # Parentrol: parental control
-# Copyright (C) 2013-2014 Cyril Adrian <cyril.adrian@gmail.com>
+# Copyright (C) 2013-2015 Cyril Adrian <cyril.adrian@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -101,16 +101,23 @@ function kill_user {
     log "**** Kill user: $user ($@)"
     display=$(get_user_display $user) && {
         $DRY_RUN || {
+            local active_tty=$(< /sys/class/tty/tty0/active)
             passwd -lq $user
             {
                 check_parentroller $user && {
                     test -p $PARENTROLLER_DIR/${user}.run && echo "Parentrol: ask quit $user" >> $PARENTROLLER_DIR/${user}.run
                     touch $PARENTROLLER_DIR/${user}.quit
-                    sleep 10
+                    sleep 2
                 }
                 slay -clean $user
             } >/dev/null 2>&1
             echo "Slayed user: $user" >&2 # will be mailed by cron
+
+            local user_tty=$(< /sys/class/tty/tty0/active)
+            if [[ $active_tty != $user_tty ]]; then
+                echo "Switching back to the active user"
+                chvt ${active_tty#tty}
+            fi
         }
     }
 }
