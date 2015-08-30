@@ -101,7 +101,9 @@ function kill_user {
     log "**** Kill user: $user ($@)"
     display=$(get_user_display $user) && {
         $DRY_RUN || {
-            local active_tty=$(< /sys/class/tty/tty0/active)
+            local active_vt=$(fgconsole)
+            local user_vt=$(grep "using VT number" /var/log/Xorg.${display#:}.log | egrep -o '[0-9]+$')
+
             passwd -lq $user
             {
                 check_parentroller $user && {
@@ -113,10 +115,9 @@ function kill_user {
             } >/dev/null 2>&1
             echo "Slayed user: $user" >&2 # will be mailed by cron
 
-            local user_tty=$(< /sys/class/tty/tty0/active)
-            if [[ $active_tty != $user_tty ]]; then
+            if [[ $active_vt != $user_vt ]]; then
                 echo "Switching back to the active user"
-                chvt ${active_tty#tty}
+                chvt ${active_vt}
             fi
         }
     }
