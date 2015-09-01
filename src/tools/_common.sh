@@ -121,7 +121,7 @@ function kill_user {
                     check_parentroller $user && {
                         test -p $PARENTROLLER_DIR/${user}.run && echo "Parentrol: ask quit $user" >> $PARENTROLLER_DIR/${user}.run
                         touch $PARENTROLLER_DIR/${user}.quit
-                        sleep 2
+                        sleep 10
                     }
                     slay -clean $user
                 } >/dev/null 2>&1
