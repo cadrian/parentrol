@@ -72,8 +72,8 @@ case x"$1" in
             echo
             echo $(date -R)": Starting parentroller"
             rm -f "$PARENTROLLER_DIR/$user.saver" "$PARENTROLLER_DIR/$user.quit"
-            inoticoming --logfile "$log" --chdir $PARENTROLLER_DIR --stdout-to-log --stderr-to-log --regexp "^$user.saver$" $0 -saver {} \;
-            inoticoming --logfile "$log" --chdir $PARENTROLLER_DIR --stdout-to-log --stderr-to-log --regexp "^$user.quit$" $0 -quit {} \;
+            inoticoming --logfile "$log" "$PARENTROLLER_DIR" --stdout-to-log --stderr-to-log --regexp "^$user.saver$" $0 -saver {} \;
+            inoticoming --logfile "$log" "$PARENTROLLER_DIR" --stdout-to-log --stderr-to-log --regexp "^$user.quit$" $0 -quit {} \;
         } >>$log 2>&1
 
         # The checker expects parentroller to be running.
