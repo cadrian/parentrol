@@ -56,6 +56,11 @@ for userdef in $(
     test -d $userdef && {
         user=$(basename $userdef)
 
+        test -e /var/log/$user.log || {
+            touch /var/log/$user.log
+            chown $user:$user /var/log/$user.log
+        }
+
         maxtime=$(cat_or_default $userdef/maxtime 120)
         gracetime=$(cat_or_default $userdef/gracetime 5)
         starttime=$(cat_or_default $userdef/starttime 0)
