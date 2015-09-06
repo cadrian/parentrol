@@ -278,6 +278,17 @@ function check_logged_in_user {
                 warn_user $user $gracetime
             fi
             return 0
+        else
+            t=$(
+                t1=$(($login_time - $ss_count - $maxtime))
+                t2=$(($endtime - $NOW))
+                if [ $t1 -gt $t2 ]; then
+                    echo $t1
+                else
+                    echo $t2
+                fi
+            )
+            log "$user has $t minute(s) left"
         fi
     fi
 
