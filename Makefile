@@ -22,4 +22,6 @@ install:
 	install -m 0644 etc/cron.d/parentrol $(DESTDIR)/etc/cron.d/
 	install -m 0644 etc/logrotate.d/parentrol $(DESTDIR)/etc/logrotate.d/
 	install -m 0644 etc/default/parentrol $(DESTDIR)/etc/default/
-	install -m 0644 gnome/*.{js,json,css} $(DESTDIR)/usr/share/gnome-shell/extensions/ParentrolView@cadrian.net/
+	install -m 0644 gnome/*.js $(DESTDIR)/usr/share/gnome-shell/extensions/ParentrolView@cadrian.net/
+	install -m 0644 gnome/*.json $(DESTDIR)/usr/share/gnome-shell/extensions/ParentrolView@cadrian.net/
+	install -m 0644 gnome/*.css $(DESTDIR)/usr/share/gnome-shell/extensions/ParentrolView@cadrian.net/
