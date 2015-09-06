@@ -37,26 +37,27 @@ function log {
 
 function check_parentroller {
     local user=$1
-    local starttime=$2
     local ck_nb=2
     local ret=1
+
+    login_date=$(last -R $user | grep "still logged in" | awk '$2 ~ /:[0-9]+/ {split($6, a, ":"); print strtonum(a[1]) * 60 + strtonum(a[2])}')
 
     while [ $ck_nb -gt 0 ]; do
         log "Check parentroller for $user - #$ck_nb"
         if ps axu | egrep "^$user[[:space:]]" | cut -c66- | egrep -q '^(/bin/bash )?'${TOOLSDIR%/}'/parentroller.sh$'; then
             ret=0
             ck_nb=0
-        elif [ $NOW -gt $(($starttime + 1)) ]; then
+        elif [ $NOW -gt $(($login_date + 1)) ]; then
             echo "Parentroller for user $user seems not to be running (in $TOOLSDIR)!" >&2 # will be mailed by cron
             log "Error: parentroller for user $user seems not to be running."
             ck_nb=0
         else
-            # $NOW is only slightly greater than $starttime, maybe the user just logged in and the parentroller is not yet started.
+            # $NOW is only slightly greater than $login_date, maybe the user just logged in and the parentroller is not yet started.
             log "Warning: parentroller for user $user seems not to be running (just logged in?) Waiting a bit."
+            ck_nb=$(($ck_nb - 1))
             if [ $ck_nb -gt 0 ]; then
                 sleep 30
             fi
-            ck_nb=$(($ck_nb - 1))
         fi
     done
     return $ret
@@ -112,10 +113,9 @@ function get_user_display {
 
 function kill_user {
     local user=$1
-    local starttime=$2
     local display
 
-    shift 2
+    shift
     log "**** Kill user: $user ($@)"
     display=$(get_user_display $user) && {
         $DRY_RUN || {
@@ -133,7 +133,7 @@ function kill_user {
             else
                 passwd -lq $user
                 {
-                    check_parentroller $user $starttime && {
+                    check_parentroller $user && {
                         test -p $PARENTROLLER_DIR/${user}.run && echo "Parentrol: ask quit $user" >> $PARENTROLLER_DIR/${user}.run
                         touch $PARENTROLLER_DIR/${user}.quit
                         sleep 10
@@ -161,14 +161,13 @@ function warn_user {
 
 function check_screensaver {
     local user=$1
-    local starttime=$2
     local display
     local saver
     local lock
 
     log "Checking screensaver of $user"
     display=$(get_user_display $user) && {
-        check_parentroller $user $starttime || {
+        check_parentroller $user || {
             log "Considering screensaver of $user inactive."
             return 1
         }
@@ -224,7 +223,6 @@ function check_screensaver {
 
 function count_screensaver {
     local user=$1
-    local starttime=$2
     local file
     local ss_count
 
@@ -235,7 +233,7 @@ function count_screensaver {
         ss_count=0
     fi
 
-    if check_screensaver $user $starttime ; then
+    if check_screensaver $user ; then
         ss_count=$(($ss_count + 1))
         log "screensaver is active for $user: $ss_count"
         echo $ss_count > $file
@@ -270,10 +268,10 @@ function check_logged_in_user {
     log "$user: login_time=$login_time"
 
     if [ $NOW -lt $starttime ]; then
-        kill_user $user $starttime "too early"
+        kill_user $user "too early"
     elif [ $NOW -gt $endtime ]; then
-        kill_user $user $starttime "too late"
-    elif ss_count=$(count_screensaver $user $starttime); then
+        kill_user $user "too late"
+    elif ss_count=$(count_screensaver $user); then
         time_left=$(
             t1=$(($maxtime + $ss_count - $login_time))
             t2=$(($endtime - $NOW))
@@ -283,8 +281,9 @@ function check_logged_in_user {
                 echo $t2
             fi
         )
+
         if [ $time_left -lt 0 ]; then
-            kill_user $user $starttime "time expired"
+            kill_user $user "time expired"
         elif [ $time_left -lt $gracetime ]; then
             log "$user has $time_left minutes left!"
             if [ -e $TMPDIR/$user.warn ]; then
@@ -318,7 +317,7 @@ function check_user {
     ensure_parentroller $user
 
     if last -R $user | grep -v "$(date +'%a %b %_d')" | grep -q "still logged in" ; then
-        kill_user $user $starttime "still logged in since yesterday"
+        kill_user $user "still logged in since yesterday"
         return 0
     fi
 
