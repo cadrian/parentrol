@@ -37,12 +37,26 @@ function log {
 
 function check_parentroller {
     local user=$1
+    local starttime=$2
+    local check=2
 
-    ps axu | egrep "^$user[[:space:]]" | cut -c66- | egrep -q '^(/bin/bash )?'${TOOLSDIR%/}'/parentroller.sh$' || {
-        echo "Parentroller for user $user seems not to be running (in $TOOLSDIR)!" >&2 # will be mailed by cron
-        log "Error: parentroller for user $user seems not to be running."
-        return 1
-    }
+    while [ $ckeck -gt 0 ]; do
+        ps axu | egrep "^$user[[:space:]]" | cut -c66- | egrep -q '^(/bin/bash )?'${TOOLSDIR%/}'/parentroller.sh$' || {
+            if [[ $NOW > $(($starttime + 1)) ]]; then
+                echo "Parentroller for user $user seems not to be running (in $TOOLSDIR)!" >&2 # will be mailed by cron
+                log "Error: parentroller for user $user seems not to be running."
+                check=0
+            else
+                # $NOW is only slightly greater than $starttime, maybe the user just logged in and the parentroller is not yet started.
+                log "Warning: parentroller for user $user seems not to be running (just logged in?) Waiting a bit."
+                check=$(($check - 1))
+                if [[ $check > 0 ]]; then
+                    sleep 30
+                fi
+            fi
+        }
+    done
+    return 1
 }
 
 function ensure_parentroller {
@@ -95,9 +109,10 @@ function get_user_display {
 
 function kill_user {
     local user=$1
+    local starttime=$2
     local display
 
-    shift
+    shift 2
     log "**** Kill user: $user ($@)"
     display=$(get_user_display $user) && {
         $DRY_RUN || {
@@ -105,7 +120,7 @@ function kill_user {
             local user_vt=$(grep "using VT number" /var/log/Xorg.${display#:}.log | egrep -o '[0-9]+$')
             if [[ $active_vt != $user_vt ]]; then
                 echo "User $user should be slain; waiting because s/he is not active."
-                if [ -e $TMPDIR/$user.slay ]; then
+                if [[ -e $TMPDIR/$user.slay ]]; then
                     log "$user already warned"
                 else
                     touch $TMPDIR/$user.slay
@@ -118,7 +133,7 @@ function kill_user {
             else
                 passwd -lq $user
                 {
-                    check_parentroller $user && {
+                    check_parentroller $user $starttime && {
                         test -p $PARENTROLLER_DIR/${user}.run && echo "Parentrol: ask quit $user" >> $PARENTROLLER_DIR/${user}.run
                         touch $PARENTROLLER_DIR/${user}.quit
                         sleep 10
@@ -146,13 +161,14 @@ function warn_user {
 
 function check_screensaver {
     local user=$1
+    local starttime=$2
     local display
     local saver
     local lock
 
     log "Checking screensaver of $user"
     display=$(get_user_display $user) && {
-        check_parentroller $user || {
+        check_parentroller $user $starttime || {
             log "Considering screensaver of $user inactive."
             return 1
         }
@@ -207,17 +223,18 @@ function check_screensaver {
 
 function count_screensaver {
     local user=$1
+    local starttime=$2
     local file
     local ss_count
 
     file=$TMPDIR/$user.screensaver
-    if [ -e $file ]; then
+    if [[ -e $file ]]; then
         ss_count=$(<$file)
     else
         ss_count=0
     fi
 
-    if check_screensaver $user ; then
+    if check_screensaver $user $starttime ; then
         ss_count=$(($ss_count + 1))
         log "screensaver is active for $user: $ss_count"
         echo $ss_count > $file
@@ -244,20 +261,20 @@ function check_logged_in_user {
 
     log "$user: login_time=$login_time ("$(last -R $user | grep "$(date +'%a %b %_d')")")"
 
-    if [ $NOW -lt $starttime ]; then
-        kill_user $user "too early"
+    if [[ $NOW < $starttime ]]; then
+        kill_user $user $starttime "too early"
         return 0
-    elif [ $NOW -gt $endtime ]; then
+    elif [[ $NOW > $endtime ]]; then
         kill_user $user "too late"
         return 0
     else
-        ss_count=$(count_screensaver $user) || return 0
+        ss_count=$(count_screensaver $user $starttime) || return 0
 
-        if [ $(($login_time - $ss_count)) -gt $(($maxtime + 1)) ]; then
+        if [[ $(($login_time - $ss_count)) > $(($maxtime + 1)) ]]; then
             kill_user $user "time expired"
             return 0
-        elif [ $(($login_time - $ss_count)) -gt $(($maxtime - $gracetime - 1)) -o $NOW -gt $(($endtime - $gracetime - 1)) ]; then
-            if [ -e $TMPDIR/$user.warn ]; then
+        elif [[ $(($login_time - $ss_count)) > $(($maxtime - $gracetime - 1)) || $NOW > $(($endtime - $gracetime - 1)) ]]; then
+            if [[ -e $TMPDIR/$user.warn ]]; then
                 log "$user already warned"
             else
                 touch $TMPDIR/$user.warn
@@ -298,10 +315,10 @@ function check_user {
 
     if last -R $user | grep -q "$(date +'%a %b %_d')" ; then
         log "$user logged in and out today"
-    elif [ $NOW -lt $starttime ]; then
+    elif [[ $NOW < $starttime ]]; then
         log "$user cannot log in yet (too early)"
         $DRY_RUN || passwd -lq $user
-    elif [ $NOW -gt $endtime ]; then
+    elif [[ $NOW > $endtime ]]; then
         log "$user cannot log in anymore (too late)"
         $DRY_RUN || passwd -lq $user
     else
@@ -317,11 +334,11 @@ function cat_or_default {
     local file=$1
     local default=$2
 
-    if [ -e $file.ovr ]; then
+    if [[ -e $file.ovr ]]; then
         cat $file.ovr
-    elif [ -e $file.$DAY ]; then
+    elif [[ -e $file.$DAY ]]; then
         cat $file.$DAY
-    elif [ -e $file ]; then
+    elif [[ -e $file ]]; then
         cat $file
     else
         echo $default
