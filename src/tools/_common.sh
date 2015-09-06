@@ -42,20 +42,20 @@ function check_parentroller {
 
     while [ $ck_nb -gt 0 ]; do
         log "Check parentroller for $user - #$ck_nb"
-        ps axu | egrep "^$user[[:space:]]" | cut -c66- | egrep -q '^(/bin/bash )?'${TOOLSDIR%/}'/parentroller.sh$' || {
-            if [ $NOW -gt $(($starttime + 1)) ]; then
-                echo "Parentroller for user $user seems not to be running (in $TOOLSDIR)!" >&2 # will be mailed by cron
-                log "Error: parentroller for user $user seems not to be running."
-                ck_nb=0
-            else
-                # $NOW is only slightly greater than $starttime, maybe the user just logged in and the parentroller is not yet started.
-                log "Warning: parentroller for user $user seems not to be running (just logged in?) Waiting a bit."
-                if [ $ck_nb -gt 0 ]; then
-                    sleep 30
-                fi
+        if ps axu | egrep "^$user[[:space:]]" | cut -c66- | egrep -q '^(/bin/bash )?'${TOOLSDIR%/}'/parentroller.sh$'; then
+            ck_nb=0
+        elif [ $NOW -gt $(($starttime + 1)) ]; then
+            echo "Parentroller for user $user seems not to be running (in $TOOLSDIR)!" >&2 # will be mailed by cron
+            log "Error: parentroller for user $user seems not to be running."
+            ck_nb=0
+        else
+            # $NOW is only slightly greater than $starttime, maybe the user just logged in and the parentroller is not yet started.
+            log "Warning: parentroller for user $user seems not to be running (just logged in?) Waiting a bit."
+            if [ $ck_nb -gt 0 ]; then
+                sleep 30
             fi
-        }
-        ck_nb=$(($ck_nb - 1))
+            ck_nb=$(($ck_nb - 1))
+        fi
     done
     return 1
 }
