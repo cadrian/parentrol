@@ -39,10 +39,12 @@ function check_parentroller {
     local user=$1
     local starttime=$2
     local ck_nb=2
+    local ret=1
 
     while [ $ck_nb -gt 0 ]; do
         log "Check parentroller for $user - #$ck_nb"
         if ps axu | egrep "^$user[[:space:]]" | cut -c66- | egrep -q '^(/bin/bash )?'${TOOLSDIR%/}'/parentroller.sh$'; then
+            ret=0
             ck_nb=0
         elif [ $NOW -gt $(($starttime + 1)) ]; then
             echo "Parentroller for user $user seems not to be running (in $TOOLSDIR)!" >&2 # will be mailed by cron
@@ -57,7 +59,7 @@ function check_parentroller {
             ck_nb=$(($ck_nb - 1))
         fi
     done
-    return 1
+    return $ret
 }
 
 function ensure_parentroller {
