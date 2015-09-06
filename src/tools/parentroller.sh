@@ -57,6 +57,7 @@ case x"$1" in
             exit 1
         fi
         echo $(date -R)": Logging out of GNOME session"
+        killall yad
         gnome-session-quit --logout --force --no-prompt
         ;;
 
