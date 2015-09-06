@@ -38,7 +38,7 @@ test -d $ETCDIR/parentrol/users.d || {
 }
 
 /usr/bin/dotlockfile -l -r 3 -p $LOCKDIR/parentrol.lock || {
-    log "**** parentrol locked!"
+    log "**** parentrol locked! ($LOCKDIR/parentrol.lock)"
     exit 0
 }
 
