@@ -177,7 +177,7 @@ function check_screensaver {
         local user_vt=$(grep "using VT number" /var/log/Xorg.${display#:}.log | egrep -o '[0-9]+$')
         log "$user's VT is $user_vt"
         if [ $active_vt -ne $user_vt ]; then
-            log "Active VT is $active_vt, obviously the user is not active."
+            log "Active VT is $active_vt, obviously $user is not active."
             # Hence behave as if the screensaver were active
             return 0
         fi
@@ -257,10 +257,13 @@ function check_logged_in_user {
     local login_time
 
     login_time=$(
-        last -R $user | grep "$(date +'%a %b %_d')" | while read l; do
-                                                          log " + $l"
-                                                      done
-        last -R $user | grep "$(date +'%a %b %_d')" | $TOOLSDIR/_login_time.awk
+        last -R $user | \
+            grep "$(date +'%a %b %_d')" | \
+            while read l; do
+                log " + $l"
+                echo "$l"
+            done | \
+            $TOOLSDIR/_login_time.awk
     )
 
     log "$user: login_time=$login_time ("$(last -R $user | grep "$(date +'%a %b %_d')")")"

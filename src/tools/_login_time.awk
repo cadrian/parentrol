@@ -23,7 +23,7 @@ BEGIN {
     t = 0;
 }
 
-$2 ~ /:[0-9]+/ && /still logged in/ {
+$2 ~ /(tty|:)[0-9]+/ && /still logged in/ {
     split($6, a, ":");
     H = strtonum(a[1]);
     M = strtonum(a[2]);
@@ -34,18 +34,7 @@ $2 ~ /:[0-9]+/ && /still logged in/ {
     next;
 }
 
-$2 ~ /tty[0-9]+/ && /still logged in/ {
-    split($6, a, ":");
-    H = strtonum(a[1]);
-    M = strtonum(a[2]);
-    if ((H < h) || (H == h && M < m)) {
-        h = H;
-        m = M;
-    }
-    next;
-}
-
-$2 ~ /tty[0-9]+/ && $7 == "-" && $8 ~ /[0-9]+:[0-9]+/ {
+$2 ~ /(tty|:)[0-9]+/ && $7 == "-" && $8 ~ /[0-9]+:[0-9]+/ {
     split($6, a, ":");
     BH = strtonum(a[1]);
     BM = strtonum(a[2]);
