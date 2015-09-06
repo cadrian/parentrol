@@ -75,6 +75,13 @@ case x"$1" in
             rm -f "$PARENTROLLER_DIR/$user.saver" "$PARENTROLLER_DIR/$user.quit"
             inoticoming --logfile "$log" "$PARENTROLLER_DIR" --stdout-to-log --stderr-to-log --regexp "^$user.saver$" $0 -saver {} \;
             inoticoming --logfile "$log" "$PARENTROLLER_DIR" --stdout-to-log --stderr-to-log --regexp "^$user.quit$" $0 -quit {} \;
+
+            ext_uuid='ParentrolView@cadrian.net'
+            ext_list=$(gsettings get org.gnome.shell enabled-extensions | sed 's/^\[\(.*\)\]$/\1/')
+            echo $ext_list | grep -q "$ext_uuid" || {
+                gsettings set org.gnome.shell enabled-extensions "[${ext_list}, '${ext_uuid}']"
+                killall -HUP gnome-shell #gnome-shell --replace & disown
+            }
         } >>$log 2>&1
 
         # The checker expects parentroller to be running.
