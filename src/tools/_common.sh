@@ -280,7 +280,7 @@ function check_logged_in_user {
             return 0
         else
             t=$(
-                t1=$(($login_time - $ss_count - $maxtime))
+                t1=$(($maxtime + $ss_count - $login_time))
                 t2=$(($endtime - $NOW))
                 if [ $t1 -gt $t2 ]; then
                     echo $t1
