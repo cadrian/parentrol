@@ -7,6 +7,7 @@ build:
 install:
 	install -d $(DESTDIR)/usr/sbin
 	install -d $(DESTDIR)/usr/share/parentrol
+	install -d $(DESTDIR)/usr/share/gnome-shell/extensions/ParentrolView@cadrian.net
 	install -d $(DESTDIR)/etc/parentrol
 	install -d $(DESTDIR)/etc/bash_completion.d
 	install -d $(DESTDIR)/etc/cron.d
@@ -21,3 +22,4 @@ install:
 	install -m 0644 etc/cron.d/parentrol $(DESTDIR)/etc/cron.d/
 	install -m 0644 etc/logrotate.d/parentrol $(DESTDIR)/etc/logrotate.d/
 	install -m 0644 etc/default/parentrol $(DESTDIR)/etc/default/
+	install -m 0644 gnome/*.{js,json,css} $(DESTDIR)/usr/share/gnome-shell/extensions/ParentrolView@cadrian.net/
