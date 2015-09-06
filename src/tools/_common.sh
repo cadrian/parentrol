@@ -255,6 +255,7 @@ function check_logged_in_user {
     local endtime=$5
     local ss_count
     local login_time
+    local ret=0
 
     login_time=$(
         last -R $user | \
@@ -266,43 +267,39 @@ function check_logged_in_user {
             $TOOLSDIR/_login_time.awk
     )
 
-    log "$user: login_time=$login_time ("$(last -R $user | grep "$(date +'%a %b %_d')")")"
+    log "$user: login_time=$login_time"
 
     if [ $NOW -lt $starttime ]; then
         kill_user $user $starttime "too early"
-        return 0
     elif [ $NOW -gt $endtime ]; then
         kill_user $user $starttime "too late"
-        return 0
-    else
-        ss_count=$(count_screensaver $user $starttime) || return 0
-
-        if [ $(($login_time - $ss_count)) -gt $(($maxtime)) ]; then
+    elif ss_count=$(count_screensaver $user $starttime); then
+        time_left=$(
+            t1=$(($maxtime + $ss_count - $login_time))
+            t2=$(($endtime - $NOW))
+            if [ $t1 -lt $t2 ]; then
+                echo $t1
+            else
+                echo $t2
+            fi
+        )
+        if [ $time_left -lt 0 ]; then
             kill_user $user $starttime "time expired"
-            return 0
-        elif [ $(($login_time - $ss_count)) -gt $(($maxtime - $gracetime)) -o $NOW -gt $(($endtime - $gracetime)) ]; then
+        elif [ $time_left -lt $gracetime ]; then
+            log "$user has $time_left minutes left!"
             if [ -e $TMPDIR/$user.warn ]; then
                 log "$user already warned"
             else
                 touch $TMPDIR/$user.warn
                 warn_user $user $gracetime
             fi
-            return 0
         else
-            t=$(
-                t1=$(($maxtime + $ss_count - $login_time))
-                t2=$(($endtime - $NOW))
-                if [ $t1 -lt $t2 ]; then
-                    echo $t1
-                else
-                    echo $t2
-                fi
-            )
-            log "$user has $t minute(s) left"
+            log "$user has $time_left minutes left"
+            ret=1
         fi
     fi
 
-    return 1
+    return $ret
 }
 
 function check_user {
