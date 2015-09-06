@@ -42,7 +42,7 @@ function check_parentroller {
 
     while [ $ckeck -gt 0 ]; do
         ps axu | egrep "^$user[[:space:]]" | cut -c66- | egrep -q '^(/bin/bash )?'${TOOLSDIR%/}'/parentroller.sh$' || {
-            if [[ $NOW > $(($starttime + 1)) ]]; then
+            if [ $NOW -gt $(($starttime + 1)) ]; then
                 echo "Parentroller for user $user seems not to be running (in $TOOLSDIR)!" >&2 # will be mailed by cron
                 log "Error: parentroller for user $user seems not to be running."
                 check=0
@@ -50,7 +50,7 @@ function check_parentroller {
                 # $NOW is only slightly greater than $starttime, maybe the user just logged in and the parentroller is not yet started.
                 log "Warning: parentroller for user $user seems not to be running (just logged in?) Waiting a bit."
                 check=$(($check - 1))
-                if [[ $check > 0 ]]; then
+                if [ $check -gt 0 ]; then
                     sleep 30
                 fi
             fi
@@ -118,9 +118,9 @@ function kill_user {
         $DRY_RUN || {
             local active_vt=$(fgconsole)
             local user_vt=$(grep "using VT number" /var/log/Xorg.${display#:}.log | egrep -o '[0-9]+$')
-            if [[ $active_vt != $user_vt ]]; then
+            if [ $active_vt -ne $user_vt ]; then
                 echo "User $user should be slain; waiting because s/he is not active."
-                if [[ -e $TMPDIR/$user.slay ]]; then
+                if [ -e $TMPDIR/$user.slay ]; then
                     log "$user already warned"
                 else
                     touch $TMPDIR/$user.slay
@@ -175,7 +175,7 @@ function check_screensaver {
 
         local active_vt=$(fgconsole)
         local user_vt=$(grep "using VT number" /var/log/Xorg.${display#:}.log | egrep -o '[0-9]+$')
-        if [[ $active_vt != $user_vt ]]; then
+        if [ $active_vt -ne $user_vt ]; then
             log "Active VT is $active_vt, $user's VT is $user_vt - obviously the user is not active."
             # Hence behave as if the screensaver were active
             return 0
@@ -228,7 +228,7 @@ function count_screensaver {
     local ss_count
 
     file=$TMPDIR/$user.screensaver
-    if [[ -e $file ]]; then
+    if [ -e $file ]; then
         ss_count=$(<$file)
     else
         ss_count=0
@@ -261,20 +261,20 @@ function check_logged_in_user {
 
     log "$user: login_time=$login_time ("$(last -R $user | grep "$(date +'%a %b %_d')")")"
 
-    if [[ $NOW < $starttime ]]; then
+    if [ $NOW -lt $starttime ]; then
         kill_user $user $starttime "too early"
         return 0
-    elif [[ $NOW > $endtime ]]; then
-        kill_user $user "too late"
+    elif [ $NOW -gt $endtime ]; then
+        kill_user $user $starttime "too late"
         return 0
     else
         ss_count=$(count_screensaver $user $starttime) || return 0
 
-        if [[ $(($login_time - $ss_count)) > $(($maxtime + 1)) ]]; then
-            kill_user $user "time expired"
+        if [ $(($login_time - $ss_count)) -gt $(($maxtime)) ]; then
+            kill_user $user $starttime "time expired"
             return 0
-        elif [[ $(($login_time - $ss_count)) > $(($maxtime - $gracetime - 1)) || $NOW > $(($endtime - $gracetime - 1)) ]]; then
-            if [[ -e $TMPDIR/$user.warn ]]; then
+        elif [ $(($login_time - $ss_count)) -gt $(($maxtime - $gracetime)) -o $NOW -gt $(($endtime - $gracetime)) ]; then
+            if [ -e $TMPDIR/$user.warn ]; then
                 log "$user already warned"
             else
                 touch $TMPDIR/$user.warn
@@ -303,7 +303,7 @@ function check_user {
     ensure_parentroller $user
 
     if last -R $user | grep -v "$(date +'%a %b %_d')" | grep -q "still logged in" ; then
-        kill_user $user "still logged in since yesterday"
+        kill_user $user $starttime "still logged in since yesterday"
         return 0
     fi
 
@@ -315,10 +315,10 @@ function check_user {
 
     if last -R $user | grep -q "$(date +'%a %b %_d')" ; then
         log "$user logged in and out today"
-    elif [[ $NOW < $starttime ]]; then
+    elif [ $NOW -lt $starttime ]; then
         log "$user cannot log in yet (too early)"
         $DRY_RUN || passwd -lq $user
-    elif [[ $NOW > $endtime ]]; then
+    elif [ $NOW -gt $endtime ]; then
         log "$user cannot log in anymore (too late)"
         $DRY_RUN || passwd -lq $user
     else
@@ -334,11 +334,11 @@ function cat_or_default {
     local file=$1
     local default=$2
 
-    if [[ -e $file.ovr ]]; then
+    if [ -e $file.ovr ]; then
         cat $file.ovr
-    elif [[ -e $file.$DAY ]]; then
+    elif [ -e $file.$DAY ]; then
         cat $file.$DAY
-    elif [[ -e $file ]]; then
+    elif [ -e $file ]; then
         cat $file
     else
         echo $default
