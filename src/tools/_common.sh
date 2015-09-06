@@ -38,7 +38,7 @@ function log {
 function check_parentroller {
     local user=$1
     local starttime=$2
-    local check=2
+    local check=$2
 
     while [ $ckeck -gt 0 ]; do
         ps axu | egrep "^$user[[:space:]]" | cut -c66- | egrep -q '^(/bin/bash )?'${TOOLSDIR%/}'/parentroller.sh$' || {
