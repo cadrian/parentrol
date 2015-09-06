@@ -38,7 +38,7 @@ function log {
 function check_parentroller {
     local user=$1
     local starttime=$2
-    local ck_nb=$2
+    local ck_nb=2
 
     while [ $ck_nb -gt 0 ]; do
         log "Check parentroller for $user - #$ck_nb"
