@@ -1,0 +1,10 @@
+.counter-label-cool {
+    color: #ccffdd;
+    background-color: #000022;
+}
+
+.counter-label-hot {
+    font-weight: bold;
+    color: #ffcc44;
+    background-color: #220000;
+}

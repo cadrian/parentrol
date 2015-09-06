@@ -281,6 +281,8 @@ function check_logged_in_user {
                 echo $t2
             fi
         )
+        echo $time_left > $PARENTROLLER_DIR/$user.left
+        chmod a+r $PARENTROLLER_DIR/$user.left
 
         if [ $time_left -lt 0 ]; then
             kill_user $user "time expired"
@@ -340,7 +342,7 @@ function check_user {
 
         # (always do it to return to sane defaults)
         $DRY_RUN || passwd -uq $user
-        rm -f $TMPDIR/$user.warn $TMPDIR/$user.slay $TMPDIR/$user.screensaver
+        rm -f $TMPDIR/$user.warn $TMPDIR/$user.slay $TMPDIR/$user.screensaver $PARENTROLLER_DIR/$user.left
     fi
 }
 

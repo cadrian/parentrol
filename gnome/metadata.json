@@ -1,0 +1,11 @@
+{
+    "name": "ParentrolView",
+    "description": "View of parentrol's remaining time",
+    "shell-version": [
+        "3.12",
+        "3.14"
+        "3.16",
+        "3.18"
+    ],
+    "uuid": "ParentrolView@cadrian.net"
+}
