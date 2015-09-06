@@ -11,6 +11,6 @@ Standards-Version: 3.9.5
 Package: parentrol
 Architecture: all
 Depends: ${shlibs:Depends}, ${misc:Depends}, logrotate, cron, bash (>= 4.2), bc, liblockfile-bin, inoticoming
-Recommends: bash-completion
+Recommends: bash-completion, gnome-shell-extensions (>= 3.10)
 Description: Parental time control
  Time control to let children use the computer only at known times.

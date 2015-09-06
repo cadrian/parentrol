@@ -2,6 +2,7 @@
     "name": "ParentrolView",
     "description": "View of parentrol's remaining time",
     "shell-version": [
+        "3.10",
         "3.12",
         "3.14"
         "3.16",
