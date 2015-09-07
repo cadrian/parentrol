@@ -123,10 +123,10 @@ function kill_user {
             local user_vt=$(grep "using VT number" /var/log/Xorg.${display#:}.log | egrep -o '[0-9]+$')
             log "Killing $user -- active VT is $active_vt / user VT is $user_vt"
             if [ $active_vt -ne $user_vt ]; then
-                echo "User $user should be slain; waiting because s/he is not active."
                 if [ -e $TMPDIR/$user.slay ]; then
                     log "$user already warned"
                 else
+                    echo "User $user should be slain; waiting because s/he is not active."
                     touch $TMPDIR/$user.slay
                     su $user -c "DISPLAY=$display yad --title 'ATTENTION' --text='SESSION EXPIRÉE' --no-buttons --undecorated --fullscreen --sticky --center --on-top --justify=center" &
                 fi
