@@ -1,6 +1,5 @@
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
-const Lang = imports.lang;
 const Main = imports.ui.main;
 const St = imports.gi.St;
 
@@ -9,12 +8,14 @@ let button, monitor;
 function _refresh(sfile, text) {
    let result = function(monitor, a_file, other_file, event_type) {
       text.text = "...";
-      if (event_type == Gio.FileMonitorEvent.CHANGED || event_type == Gio.FileMonitorEvent.CREATED) {
-         if (GLib.file_test(sfile, 1 << 4)) {
-            let file = Gio.file_new_for_path(sfile);
-            file.load_contents_async(null, Lang.bind(this, function (source, result) {
-               let contents = source.load_contents_finish(result);
-               let left = parseInt(contents[1]);
+      if (event_type ==  Gio.FileMonitorEvent.DELETED) {
+         text.text = "??:??";
+      } else if (event_type == Gio.FileMonitorEvent.CHANGED || event_type == Gio.FileMonitorEvent.CREATED) {
+         let file = Gio.file_new_for_path(sfile);
+         file.load_contents_async(null, function (source, result) {
+            let [ok, contents, etag_out] = source.load_contents_finish(result);
+            if (ok) {
+               let left = parseInt(contents);
                let h = left / 60;
                let m = left % 60;
                if (h < 1 && m < 30) {
@@ -25,14 +26,10 @@ function _refresh(sfile, text) {
                   text.add_style_class_name('counter-label-cool');
                }
                text.text = "%02d:%02d".format(h, m);
-            }));
-         } else {
-            text.text = "??:??";
-         }
-      } else if (event_type ==  Gio.FileMonitorEvent.DELETED) {
-         text.text = "??:??";
-      } else {
-         text.text = "%s".format(event_type);
+            } else {
+               text.text = "??:??";
+            }
+         });
       }
    };
    return result;
@@ -54,7 +51,7 @@ function init() {
    });
    monitor = Gio.File.new_for_path(sfile).monitor_file(Gio.FileMonitorFlags.NONE, null);
    let refresh = _refresh(sfile, text);
-   monitor.id = monitor.connect('changed', Lang.bind(this, refresh));
+   monitor.id = monitor.connect('changed', refresh);
    refresh(monitor, null, null, Gio.FileMonitorEvent.CREATED);
    button.set_child(text);
 }
