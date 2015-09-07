@@ -9,4 +9,5 @@ Possibilities:
  * maximum time per day
  * grace time (displays a popup warning the user that the max time or end time is almost reached)
  * screensaver aware
- * global, per-day and override controls
+ * global, per-day and override controls + profiles
+ * Gnome-shell extension to track the remaining time
