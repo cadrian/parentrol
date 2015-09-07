@@ -16,28 +16,27 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-USERSDIR=${USERSDIR:-$(
-        if [ -f /etc/parentrol/profile ]; then
-            echo /etc/parentrol/$(< /etc/parentrol/profile)/users.d
+PARENTROLDIR=${PARENTROLDIR:-/etc/parentrol}
+USERSDIR=$(
+        if [ -f $PARENTROLDIR/profile ]; then
+            echo $PARENTROLDIR/profiles.d/$(< $PARENTROLDIR/profile)/users.d
         else
-            echo /etc/parentrol/users.d
+            echo $PARENTROLDIR/users.d
         fi
-)}
+)
 
-case "$1" in
-    help|--help|-h|-?)
-        exec cat <<EOF
+function usage {
+    exec cat <<EOF
 
 Parentrol: parental control
-Copyright (C) 2013-2015 Cyril Adrian <cyril.adrian@gmail.com>
+[1mCopyright (C) 2013-2015 Cyril Adrian <cyril.adrian@gmail.com>[m
 This program comes with ABSOLUTELY NO WARRANTY.
 This is free software, and you are welcome to redistribute it
 under certain conditions (see http://www.gnu.org/copyleft/gpl.html).
 
 Usage:
 
-$0 <user> <file> [<ext>] <value>
+[1m$0 <user> <file> [<ext>] <value>[m
     Update the user parentrol definition
     <user>  the login of a limited user
     <file>  the file to modify: one of
@@ -45,90 +44,95 @@ $0 <user> <file> [<ext>] <value>
     <ext>   if present, either the specific day or 'override'
     <value> the time in format HH:MM or in minutes
 
-$0 <user> <file> [<ext>] remove
+[1m$0 <user> <file> [<ext>] remove[m
     Remove the user parentrol definition
     <user>  the login of a limited user
     <file>  the file to modify: one of
             starttime, endtime, maxtime, gracetime
     <ext>   if present, either the specific day or 'override'
 
-$0 <user> create
+[1m$0 <user> create[m
     Create the user
     <user>  the login of a limited user
 
-$0 <user> remove
+[1m$0 <user> remove[m
     Remove the user
     <user>  the login of a limited user
 
-$0 <user> show
+[1m$0 <user> show[m
     Show the user control files
     <user>  the login of a limited user
 
-$0 help
+[1m$0 profile set <profile>[m
+    Set the given profile.
+    If the profile does not exist, it is copied from the default profile.
+
+[1m$0 profile unset[m
+    Unset any profile (i.e. back to the default profile).
+
+[1m$0 help[m
     This help
 
 EOF
-        ;;
-    "")
-        echo "$0: Expected <user> or help" >&2
+}
+
+function schedule {
+    local user=$1
+
+    if [ ! -d $USERSDIR/$user ]; then
+        if [ "$2" == create ]; then
+            echo "$0: Creating $USERSDIR/$user"
+            mkdir -p $USERSDIR/$user
+            exit 0
+        fi
+        echo "$0: Unknown user $user" >&2
         exit 1
-        ;;
-esac
-
-user=$1
-if [ ! -d $USERSDIR/$user ]; then
-    if [ "$2" == create ]; then
-        echo "$0: Creating $USERSDIR/$user"
-        mkdir -p $USERSDIR/$user
-        exit 0
     fi
-    echo "$0: Unknown user $user" >&2
-    exit 1
-fi
-case "$2" in
-    remove)
-        echo "$0: Removing $USERSDIR/$user"
-        rm -rf $USERSDIR/$user
-        exit 0
-        ;;
-    show)
-        function cat_or_default {
-            local file=$1
-            local ext=$2
-            local default=$3
-            {
-                if [ -e $file.ovr ]; then
-                    cat $file.ovr
-                elif [ -e $file$ext ]; then
-                    cat $file$ext
-                elif [ -e $file ]; then
-                    cat $file
-                else
-                    echo $default
-                fi
-            } | awk '{printf("%02d:%02d", $0/60, $0%60)}'
-            if [ -e $file.ovr ]; then
-                echo ' (overridden)'
-            elif [ -e $file$ext ]; then
-                echo
-            elif [ -e $file ]; then
-                echo ' (standard)'
-            else
-                echo ' (default)'
-            fi
-        }
 
-        echo
-        format=" %-9s | %-20s %-20s %-20s %-20s\n"
-        printf "$format" Day Start End Max Grace
-        echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-        while read ext day; do
-            starttime=$(cat_or_default $USERSDIR/$user/starttime $ext 0)
-            endtime=$(cat_or_default $USERSDIR/$user/endtime $ext 1440)
-            maxtime=$(cat_or_default $USERSDIR/$user/maxtime $ext 120)
-            gracetime=$(cat_or_default $USERSDIR/$user/gracetime $ext 5)
-            printf "$format" "$day" "$starttime" "$endtime" "$maxtime" "$gracetime"
-        done <<EOF
+    case "$2" in
+        remove)
+            echo "$0: Removing $USERSDIR/$user"
+            rm -rf $USERSDIR/$user
+            exit 0
+            ;;
+        show)
+            function cat_or_default {
+                local file=$1
+                local ext=$2
+                local default=$3
+                {
+                    if [ -e $file.ovr ]; then
+                        cat $file.ovr
+                    elif [ -e $file$ext ]; then
+                        cat $file$ext
+                    elif [ -e $file ]; then
+                        cat $file
+                    else
+                        echo $default
+                    fi
+                } | awk '{printf("%02d:%02d", $0/60, $0%60)}'
+                if [ -e $file.ovr ]; then
+                    echo ' (overridden)'
+                elif [ -e $file$ext ]; then
+                    echo
+                elif [ -e $file ]; then
+                    echo ' (standard)'
+                else
+                    echo ' (default)'
+                fi
+            }
+
+            echo
+            format=" %-9s | %-20s %-20s %-20s %-20s\n"
+            printf "$format" Day Start End Max Grace
+            echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+            while read ext day; do
+                starttime=$(cat_or_default $USERSDIR/$user/starttime $ext 0)
+                endtime=$(cat_or_default $USERSDIR/$user/endtime $ext 1440)
+                maxtime=$(cat_or_default $USERSDIR/$user/maxtime $ext 120)
+                gracetime=$(cat_or_default $USERSDIR/$user/gracetime $ext 5)
+                printf "$format" "$day" "$starttime" "$endtime" "$maxtime" "$gracetime"
+            done <<EOF
 .Mon Monday
 .Tue Tuesday
 .Wed Wednesday
@@ -137,99 +141,141 @@ case "$2" in
 .Sat Saturday
 .Sun Sunday
 EOF
-        echo
-        exit
-esac
+            echo
+            exit
+    esac
 
-shift
-
-if [ -z "$1" ]; then
-    echo "$0: Expected file" >&2
-    exit 1
-fi
-
-case "$1" in
-    start*)
-        file=starttime
-        ;;
-    end*)
-        file=endtime
-        ;;
-    max*)
-        file=maxtime
-        ;;
-    grace*)
-        file=gracetime
-        ;;
-    *)
-        echo "$0: Unknown file: $1" >&2
-        exit 1
-        ;;
-esac
-shift
-
-case "$1" in
-    [Mm]on*)
-        ext=.Mon
-        shift
-        ;;
-    [Tt]ue*)
-        ext=.Tue
-        shift
-        ;;
-    [Ww]ed*)
-        ext=.Wed
-        shift
-        ;;
-    [Tt]hu*)
-        ext=.Thu
-        shift
-        ;;
-    [Ff]ri*)
-        ext=.Fri
-        shift
-        ;;
-    [Ss]at*)
-        ext=.Sat
-        shift
-        ;;
-    [Ss]un*)
-        ext=.Sun
-        shift
-        ;;
-    [Oo]vr|[Oo]ver*)
-        ext=.ovr
-        shift
-        ;;
-    *)
-        ext=""
-        ;;
-esac
-
-if [ -z "$1" ]; then
-    echo "$0: Expected value" >&2
-    exit 1
-fi
-
-if [ "$1" == remove ]; then
-    echo "$0: Removing $USERSDIR/$user/$file$ext"
-    rm -f $USERSDIR/$user/$file$ext
-else
-    value=$(echo $1 | egrep '([0-9]{1,2}:[0-9]{1,2}|[0-9]{1,4})' | sed 's/:/*60+/' | bc 2>/dev/null)
-    if [ -z "$value" ]; then
-        echo "$0: Invalid value: $1" >&2
-        exit 1
-    elif [ "$value" -lt 0 -o "$value" -gt 1440 ]; then
-        echo "$0: Value out of range: $1" >&2
-        exit 1
-    fi
     shift
 
-    if [ -n "$1" ]; then
-        echo "$0: Unexpected data: $1" >&2
+    if [ -z "$1" ]; then
+        echo "$0: Expected file" >&2
         exit 1
     fi
 
-    echo "$0: Setting $USERSDIR/$user/$file$ext to $value"
-    echo $value > $USERSDIR/$user/$file$ext
-fi
+    case "$1" in
+        start*)
+            file=starttime
+            ;;
+        end*)
+            file=endtime
+            ;;
+        max*)
+            file=maxtime
+            ;;
+        grace*)
+            file=gracetime
+            ;;
+        *)
+            echo "$0: Unknown file: $1" >&2
+            exit 1
+            ;;
+    esac
+    shift
+
+    case "$1" in
+        [Mm]on*)
+            ext=.Mon
+            shift
+            ;;
+        [Tt]ue*)
+            ext=.Tue
+            shift
+            ;;
+        [Ww]ed*)
+            ext=.Wed
+            shift
+            ;;
+        [Tt]hu*)
+            ext=.Thu
+            shift
+            ;;
+        [Ff]ri*)
+            ext=.Fri
+            shift
+            ;;
+        [Ss]at*)
+            ext=.Sat
+            shift
+            ;;
+        [Ss]un*)
+            ext=.Sun
+            shift
+            ;;
+        [Oo]vr|[Oo]ver*)
+            ext=.ovr
+            shift
+            ;;
+        *)
+            ext=""
+            ;;
+    esac
+
+    if [ -z "$1" ]; then
+        echo "$0: Expected value" >&2
+        exit 1
+    fi
+
+    if [ "$1" == remove ]; then
+        echo "$0: Removing $USERSDIR/$user/$file$ext"
+        rm -f $USERSDIR/$user/$file$ext
+    else
+        value=$(echo $1 | egrep '([0-9]{1,2}:[0-9]{1,2}|[0-9]{1,4})' | sed 's/:/*60+/' | bc 2>/dev/null)
+        if [ -z "$value" ]; then
+            echo "$0: Invalid value: $1" >&2
+            exit 1
+        elif [ "$value" -lt 0 -o "$value" -gt 1440 ]; then
+            echo "$0: Value out of range: $1" >&2
+            exit 1
+        fi
+        shift
+
+        if [ -n "$1" ]; then
+            echo "$0: Unexpected data: $1" >&2
+            exit 1
+        fi
+
+        echo "$0: Setting $USERSDIR/$user/$file$ext to $value"
+        echo $value > $USERSDIR/$user/$file$ext
+    fi
+}
+
+function profile {
+    case "$1" in
+        set)
+            if [ x"$2" == x ]; then
+                echo "$0: Expected profile name" >&2
+                exit 1
+            fi
+            dir=$PARENTROLDIR/profiles.d/"$1"
+            test -d "$dir" || {
+                mkdir -p "$dir"
+                cp -a $PARENTROLDIR/users.d "$dir"/users.d
+            }
+            echo "$2" > $PARENTROLDIR/profile
+            ;;
+        unset)
+            rm -f $PARENTROLDIR/profile
+            ;;
+        *)
+            echo "$0: Invalid option: $1" >&2
+            exit 1
+            ;;
+    esac
+}
+
+case x"$1" in
+    x)
+        echo "$0: Expected <user> or help" >&2
+        exit 1
+        ;;
+    xhelp|x--help|x-h|x-?)
+        usage
+        ;;
+    xprofile)
+        shift
+        profile "$@"
+        ;;
+    *)
+        schedule "$@"
+        ;;
+esac

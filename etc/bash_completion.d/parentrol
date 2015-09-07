@@ -1,5 +1,10 @@
+PARENTROLDIR=${PARENTROLDIR:-/etc/parentrol}
+
 _parentrol_times()
 {
+    local h
+    local m
+
     for h in $(seq 24); do
         if [ $h -lt 10 ]; then
             h=0$h
@@ -12,45 +17,66 @@ _parentrol_times()
 
 _parentrol_complete()
 {
-    local cur
+    local cur=${COMP_WORDS[COMP_CWORD]}
+    local user
+    local file
+    local ext
 
     COMPREPLY=()
-    cur=${COMP_WORDS[COMP_CWORD]}
 
     case $COMP_CWORD in
         1)
-            COMPREPLY=($(compgen -W "help $(awk -F: '$3 >= 1000 && $3 < 65000 {print $1}' /etc/passwd)" -- "$cur"))
+            COMPREPLY=($(compgen -W "help profile $(awk -F: '$3 >= 1000 && $3 < 65000 {print $1}' /etc/passwd)" -- $cur))
             ;;
+
         2)
             user=${COMP_WORDS[1]}
-            if [ -d /etc/parentrol/users.d/$user ]; then
-                COMPREPLY=($(compgen -W "show remove starttime endtime maxtime gracetime" -- "$cur"))
+            if [ $user == profile ]; then
+                COMPREPLY=($(compgen -W "set unset" -- $cur))
             else
-                COMPREPLY=($(compgen -W create -- "$cur"))
+                if [ -d $PARENTROLDIR/users.d/$user ]; then
+                    COMPREPLY=($(compgen -W "show remove starttime endtime maxtime gracetime" -- $cur))
+                else
+                    COMPREPLY=($(compgen -W create -- "$cur"))
+                fi
             fi
             ;;
+
         3)
             user=${COMP_WORDS[1]}
             file=${COMP_WORDS[2]}
-            case "$file" in
-                starttime|endtime|maxtime|gracetime)
-                    COMPREPLY=($(compgen -W "Monday Tuesday Wednesday Thursday Friday Saturday Sunday Override remove $(_parentrol_times)" -- "$cur"))
-                    ;;
-            esac
+            if [ $user == profile ]; then
+                if [ $file == set ]; then
+                    if [ -d $PARENTROLDIR/profiles.d ]; then
+                        COMPREPLY=($(compgen -W "$(ls -1 $PARENTROLDIR/profiles.d)" -- $cur))
+                    fi
+                fi
+            else
+                case $file in
+                    starttime|endtime|maxtime|gracetime)
+                        COMPREPLY=($(compgen -W "Monday Tuesday Wednesday Thursday Friday Saturday Sunday Override remove $(_parentrol_times)" -- $cur))
+                        ;;
+                esac
+            fi
             ;;
+
         4)
             user=${COMP_WORDS[1]}
             file=${COMP_WORDS[2]}
             ext=${COMP_WORDS[3]}
-            case "$file" in
-                starttime|endtime|maxtime|gracetime)
-                    case "$ext" in
-                        Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Override)
-                            COMPREPLY=($(compgen -W "remove $(_parentrol_times)" -- "$cur"))
-                            ;;
-                    esac
-                    ;;
-            esac
+            if [ $user == profile ]; then
+                :
+            else
+                case $file in
+                    starttime|endtime|maxtime|gracetime)
+                        case $ext in
+                            Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Override)
+                                COMPREPLY=($(compgen -W "remove $(_parentrol_times)" -- $cur))
+                                ;;
+                        esac
+                        ;;
+                esac
+            fi
     esac
 }
 complete -F _parentrol_complete parentrol
