@@ -10,7 +10,7 @@ function _refresh(sfile, text) {
       text.text = "...";
       if (event_type ==  Gio.FileMonitorEvent.DELETED) {
          text.text = "??:??";
-      } else if (event_type == Gio.FileMonitorEvent.CHANGED || event_type == Gio.FileMonitorEvent.CREATED) {
+      } else if (event_type == Gio.FileMonitorEvent.CHANGED || event_type == Gio.FileMonitorEvent.CREATED || event_type == Gio.FileMonitorEvent.MOVED) {
          let file = Gio.file_new_for_path(sfile);
          file.load_contents_async(null, function (source, result) {
             let [ok, contents, etag_out] = source.load_contents_finish(result);

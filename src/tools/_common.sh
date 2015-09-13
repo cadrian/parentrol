@@ -282,7 +282,6 @@ function check_logged_in_user {
             fi
         )
         echo $time_left > $PARENTROLLER_DIR/$user.left
-        chmod a+r $PARENTROLLER_DIR/$user.left
 
         if [ $time_left -lt 0 ]; then
             kill_user $user "time expired"
