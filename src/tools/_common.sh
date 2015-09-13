@@ -134,8 +134,8 @@ function kill_user {
                 passwd -lq $user
                 {
                     check_parentroller $user && {
-                        test -p $PARENTROLLER_DIR/${user}.run && echo "Parentrol: ask quit $user" >> $PARENTROLLER_DIR/${user}.run
-                        touch $PARENTROLLER_DIR/${user}.quit
+                        test -p $PARENTROLLER_DIR/$user.run && echo "Parentrol: ask quit $user" >> $PARENTROLLER_DIR/$user.run
+                        touch $PARENTROLLER_DIR/$user.quit
                         sleep 10
                     }
                     slay -clean $user
@@ -181,7 +181,7 @@ function check_screensaver {
             return 0
         fi
 
-        saver=$PARENTROLLER_DIR/${user}.saver
+        saver=$PARENTROLLER_DIR/$user.saver
         rm -f $saver*
         lock=$saver.lock
         /usr/bin/dotlockfile -l -r 3 $lock || {
@@ -281,7 +281,7 @@ function check_logged_in_user {
                 echo $t2
             fi
         )
-        echo $time_left > $PARENTROLLER_DIR/$user.left
+        su $user -c "echo $time_left > $PARENTROLLER_DIR/$user.left"
 
         if [ $time_left -lt 0 ]; then
             kill_user $user "time expired"
