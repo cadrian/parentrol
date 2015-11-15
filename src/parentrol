@@ -18,11 +18,11 @@
 
 PARENTROLDIR=${PARENTROLDIR:-/etc/parentrol}
 USERSDIR=$(
-        if [ -f $PARENTROLDIR/profile ]; then
-            echo $PARENTROLDIR/profiles.d/$(< $PARENTROLDIR/profile)/users.d
-        else
-            echo $PARENTROLDIR/users.d
-        fi
+    if [ -f $(readlink -f $PARENTROLDIR/profile) ]; then
+        echo $PARENTROLDIR/profiles.d/$(< $PARENTROLDIR/profile)/users.d
+    else
+        echo $PARENTROLDIR/users.d
+    fi
 )
 
 function usage {
@@ -251,6 +251,7 @@ function profile {
                 mkdir -p "$dir"
                 cp -a $PARENTROLDIR/users.d "$dir"/users.d
             }
+            rm -f $PARENTROLDIR/profile
             echo "$2" > $PARENTROLDIR/profile
             ;;
         unset)

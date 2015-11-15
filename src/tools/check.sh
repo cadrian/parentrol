@@ -47,7 +47,7 @@ log "Starting parentrol checking session (NOW=$NOW DAY=$DAY)"
 
 pids=""
 for userdef in $(
-    if [ -f $ETCDIR/parentrol/profile ]; then
+    if [ -f $(readlink -f $ETCDIR/parentrol/profile) ]; then
         echo $ETCDIR/parentrol/$(< $ETCDIR/parentrol/profile)/users.d/*
     else
         echo $ETCDIR/parentrol/users.d/*
