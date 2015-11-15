@@ -111,7 +111,7 @@ function get_user_display {
     return 1
 }
 
-function kill_user {
+function kill_user_now {
     local user=$1
     local display
 
@@ -119,28 +119,42 @@ function kill_user {
     log "**** Kill user: $user ($@)"
     display=$(get_user_display $user) && {
         $DRY_RUN || {
+            passwd -lq $user
+            {
+                check_parentroller $user && {
+                    test -p $PARENTROLLER_DIR/$user.run && echo "Parentrol: ask quit $user" >> $PARENTROLLER_DIR/$user.run
+                    touch $PARENTROLLER_DIR/$user.quit
+                    sleep 10
+                }
+                slay -clean $user
+                rm -f $TMPDIR/$user.slay
+            } >/dev/null 2>&1
+            echo "User $user slain! ($@)" >&2 # will be mailed by cron
+        }
+    }
+}
+
+function kill_user {
+    local user=$1
+    local display
+
+    shift
+    display=$(get_user_display $user) && {
+        $DRY_RUN || {
             local active_vt=$(fgconsole)
             local user_vt=$(grep "using VT number" /var/log/Xorg.${display#:}.log | egrep -o '[0-9]+$')
-            log "Killing $user -- active VT is $active_vt / user VT is $user_vt"
+            log "Must kill $user ($@) -- active VT is $active_vt / user VT is $user_vt"
             if [ $active_vt -ne $user_vt ]; then
                 if [ -e $TMPDIR/$user.slay ]; then
-                    log "$user already warned"
+                    log "User $user already warned"
                 else
-                    echo "User $user should be slain; waiting because s/he is not active."
+                    echo "User $user should be killed; waiting because s/he is not active."
                     touch $TMPDIR/$user.slay
                     su $user -c "DISPLAY=$display yad --title 'ATTENTION' --text='SESSION EXPIRÉE' --no-buttons --undecorated --fullscreen --sticky --center --on-top --justify=center" &
+                    disown
                 fi
             else
-                passwd -lq $user
-                {
-                    check_parentroller $user && {
-                        test -p $PARENTROLLER_DIR/$user.run && echo "Parentrol: ask quit $user" >> $PARENTROLLER_DIR/$user.run
-                        touch $PARENTROLLER_DIR/$user.quit
-                        sleep 10
-                    }
-                    slay -clean $user
-                } >/dev/null 2>&1
-                echo "User $user slain!" >&2 # will be mailed by cron
+                kill_user_now $user "$@"
             fi
         }
     }
@@ -155,6 +169,7 @@ function warn_user {
     display=$(get_user_display $user) && {
         $DRY_RUN || {
             su $user -c "DISPLAY=$display yad --title 'ATTENTION' --text='FIN DE SESSION DANS $gracetime MINUTES' --button=gtk-ok:0 --undecorated --sticky --center --on-top --justify=center" &
+            disown
         }
     }
 }
@@ -318,7 +333,7 @@ function check_user {
     ensure_parentroller $user
 
     if last -R $user | grep -v "$(date +'%a %b %_d')" | grep -q "still logged in" ; then
-        kill_user $user "still logged in since yesterday"
+        kill_user_now $user "still logged in since yesterday"
         return 0
     fi
 
