@@ -80,10 +80,9 @@ StartupNotify=false
 X-GNOME-Autostart-enabled=true
 Comment=Parentroller
 EOF
-
-        chmod 750 $desktop
-        chown $user:$user $desktop
     }
+    chmod 750 $desktop
+    chown $user:$user $desktop
 
     log="$PARENTROLLER_LOGDIR/$user.log"
     touch "$log"
@@ -127,7 +126,6 @@ function kill_user_now {
                     sleep 10
                 }
                 slay -clean $user
-                rm -f $TMPDIR/$user.slay
             } >/dev/null 2>&1
             echo "User $user slain! ($@)" >&2 # will be mailed by cron
         }
@@ -334,10 +332,7 @@ function check_user {
 
     if last -R $user | grep -v "$(date +'%a %b %_d')" | grep -q "still logged in" ; then
         kill_user_now $user "still logged in since yesterday"
-        return 0
-    fi
-
-    if last -R $user | grep -q "still logged in" ; then
+    elif last -R $user | grep -q "still logged in" ; then
         if check_logged_in_user $user $maxtime $gracetime $starttime $endtime ; then
             return 0
         fi
