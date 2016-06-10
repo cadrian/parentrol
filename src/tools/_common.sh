@@ -1,7 +1,7 @@
 # to be sourced
 
 # Parentrol: parental control
-# Copyright (C) 2013-2015 Cyril Adrian <cyril.adrian@gmail.com>
+# Copyright (C) 2013-2016 Cyril Adrian <cyril.adrian@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -264,6 +264,7 @@ function check_logged_in_user {
     local gracetime=$3
     local starttime=$4
     local endtime=$5
+    local ban=$6
     local ss_count
     local login_time
     local ret=0
@@ -284,6 +285,8 @@ function check_logged_in_user {
         kill_user $user "too early"
     elif [ $NOW -gt $endtime ]; then
         kill_user $user "too late"
+    elif [ $ban -gt $(date +'%s') ]; then
+        kill_user_now $user "user is banned until $(date -R -d"@$ban")"
     elif ss_count=$(count_screensaver $user); then
         time_left=$(
             t1=$(($maxtime + $ss_count - $login_time))
@@ -321,6 +324,7 @@ function check_user {
     local gracetime=$3
     local starttime=$4
     local endtime=$5
+    local ban=$6
 
     log "Checking $user ($starttime-$endtime: max $maxtime/$gracetime)"
     log "Display of $user is" $(get_user_display $user)
@@ -333,7 +337,7 @@ function check_user {
     if last -R $user | grep -v "$(date +'%a %b %_d')" | grep -q "still logged in" ; then
         kill_user_now $user "still logged in since yesterday"
     elif last -R $user | grep -q "still logged in" ; then
-        if check_logged_in_user $user $maxtime $gracetime $starttime $endtime ; then
+        if check_logged_in_user $user $maxtime $gracetime $starttime $endtime $ban ; then
             return 0
         fi
     fi

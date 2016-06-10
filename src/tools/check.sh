@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Parentrol: parental control
-# Copyright (C) 2013-2015 Cyril Adrian <cyril.adrian@gmail.com>
+# Copyright (C) 2013-2016 Cyril Adrian <cyril.adrian@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -65,8 +65,9 @@ for userdef in $(
         gracetime=$(cat_or_default $userdef/gracetime 5)
         starttime=$(cat_or_default $userdef/starttime 0)
         endtime=$(cat_or_default $userdef/endtime $((24 * 60)))
+        ban=$(cat_or_default $userdef/ban 0)
 
-        check_user $user $maxtime $gracetime $starttime $endtime &
+        check_user $user $maxtime $gracetime $starttime $endtime $ban &
         pids="$pids $!"
     }
 done

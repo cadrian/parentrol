@@ -1,4 +1,4 @@
-parentrol (0.0.6~rc4) unstable; urgency=low
+parentrol (0.0.6~rc5) unstable; urgency=low
 
   * fix /etc/default/parentrol
   * be sure that the parentroller.sh script stays running for each managed user
@@ -7,8 +7,9 @@ parentrol (0.0.6~rc4) unstable; urgency=low
   * tighter perms
   * try to switch back to the active user if a user is killed while not active
   * Gnome3 shell extension to display the remaining time
+  * temporary ban
 
- -- Cyril Adrian <cyril.adrian@gmail.com>  Sun, 30 Aug 2015 13:00:10 +0200
+ -- Cyril Adrian <cyril.adrian@gmail.com>  Fri, 10 Jun 2016 20:57:51 +0200
 
 parentrol (0.0.5) unstable; urgency=low
 

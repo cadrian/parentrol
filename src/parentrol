@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Parentrol: parental control
-# Copyright (C) 2013-2015 Cyril Adrian <cyril.adrian@gmail.com>
+# Copyright (C) 2013-2016 Cyril Adrian <cyril.adrian@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ function usage {
     exec cat <<EOF
 
 Parentrol: parental control
-[1mCopyright (C) 2013-2015 Cyril Adrian <cyril.adrian@gmail.com>[m
+[1mCopyright (C) 2013-2016 Cyril Adrian <cyril.adrian@gmail.com>[m
 This program comes with ABSOLUTELY NO WARRANTY.
 This is free software, and you are welcome to redistribute it
 under certain conditions (see http://www.gnu.org/copyleft/gpl.html).
@@ -44,11 +44,17 @@ Usage:
     <ext>   if present, either the specific day or 'override'
     <value> the time in format HH:MM or in minutes
 
+[1m$0 <user> ban [until] <value>[m
+    Update the user parentrol definition: temporary ban for some time
+    <user>  the login of a limited user
+    <value> either the length of the punition in format HH:MM or in minutes
+            or (with 'until') the limit of the punition in date(1) format
+
 [1m$0 <user> <file> [<ext>] remove[m
     Remove the user parentrol definition
     <user>  the login of a limited user
     <file>  the file to modify: one of
-            starttime, endtime, maxtime, gracetime
+            starttime, endtime, maxtime, gracetime, ban
     <ext>   if present, either the specific day or 'override'
 
 [1m$0 <user> create[m
@@ -126,13 +132,16 @@ function schedule {
             format=" %-9s | %-20s %-20s %-20s %-20s\n"
             printf "$format" Day Start End Max Grace
             echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-            while read ext day; do
-                starttime=$(cat_or_default $USERSDIR/$user/starttime $ext 0)
-                endtime=$(cat_or_default $USERSDIR/$user/endtime $ext 1440)
-                maxtime=$(cat_or_default $USERSDIR/$user/maxtime $ext 120)
-                gracetime=$(cat_or_default $USERSDIR/$user/gracetime $ext 5)
-                printf "$format" "$day" "$starttime" "$endtime" "$maxtime" "$gracetime"
-            done <<EOF
+            if [ -r $USERSDIR/$user/ban ]; then
+                echo "User is banned until $(<$USERSDIR/$user/ban)"
+            else
+                while read ext day; do
+                    starttime=$(cat_or_default $USERSDIR/$user/starttime $ext 0)
+                    endtime=$(cat_or_default $USERSDIR/$user/endtime $ext 1440)
+                    maxtime=$(cat_or_default $USERSDIR/$user/maxtime $ext 120)
+                    gracetime=$(cat_or_default $USERSDIR/$user/gracetime $ext 5)
+                    printf "$format" "$day" "$starttime" "$endtime" "$maxtime" "$gracetime"
+                done <<EOF
 .Mon Monday
 .Tue Tuesday
 .Wed Wednesday
@@ -141,6 +150,7 @@ function schedule {
 .Sat Saturday
 .Sun Sunday
 EOF
+            fi
             echo
             exit
     esac
@@ -164,6 +174,9 @@ EOF
             ;;
         grace*)
             file=gracetime
+            ;;
+        ban*)
+            file=ban
             ;;
         *)
             echo "$0: Unknown file: $1" >&2
@@ -215,7 +228,47 @@ EOF
         exit 1
     fi
 
-    if [ "$1" == remove ]; then
+    if [ "$file" == ban ]; then
+        if [ -n "$ext" ]; then
+            echo "$0: unexpected extension for ban" >&2
+            exit 1
+        fi
+        if [ "$1" == remove ]; then
+            echo "$0: Removing $USERSDIR/$user/ban"
+            rm -f $USERSDIR/$user/ban
+        elif [ "$1" == until ]; then
+            shift
+            if date -d "$*" >/dev/null 2>&1; then
+                value=$(date -d "$*" +'%s')
+            else
+                echo "$0: invalid date format: $1"
+                exit 1
+            fi
+        else
+            value=$(
+                {
+                    echo $1 | egrep '([0-9]{1,2}:[0-9]{1,2}|[0-9]{1,4})' | sed 's/:/*60+/'
+                    date +'%s'
+                    echo '+'
+                } | bc 2>/dev/null
+            )
+            if [ -z "$value" ]; then
+                echo "$0: Invalid value: $1" >&2
+                exit 1
+            elif [ "$value" -lt 0 -o "$value" -gt 1440 ]; then
+                echo "$0: Value out of range: $1" >&2
+                exit 1
+            fi
+            shift
+            if [ -n "$1" ]; then
+                echo "$0: Unexpected data: $1" >&2
+                exit 1
+            fi
+        fi
+
+        echo "$0: Setting $USERSDIR/$user/ban to $value"
+        echo $value > $USERSDIR/$user/ban
+    elif [ "$1" == remove ]; then
         echo "$0: Removing $USERSDIR/$user/$file$ext"
         rm -f $USERSDIR/$user/$file$ext
     else

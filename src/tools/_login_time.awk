@@ -1,7 +1,7 @@
 #!/usr/bin/awk -f
 
 # Parentrol: parental control
-# Copyright (C) 2013-2015 Cyril Adrian <cyril.adrian@gmail.com>
+# Copyright (C) 2013-2016 Cyril Adrian <cyril.adrian@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
