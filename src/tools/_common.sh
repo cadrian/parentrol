@@ -90,20 +90,38 @@ EOF
     chmod 644 "$log"
 }
 
-function get_user_display {
+function get_active_console() {
+    cat /sys/class/tty/tty0/active
+}
+
+function get_user_console {
     local user=$1
     local tty
 
-    tty=$(last -R $user | grep "still logged in" | awk '$2 ~ /:[0-9]+/ {print $2}') && {
+    tty=$(last -R $user | grep "still logged in" | awk '$2 ~ /tty[0-9]+/ {print $2}') && {
         test -n "$tty" && {
             echo $tty
             return 0
         }
     }
-    tty=$(last -R $user | grep "still logged in" | awk '$2 ~ /tty[0-9]+/ {print $2}') && {
+    echo "not found"
+    return 1
+}
+
+function get_user_display {
+    local user=$1
+    local tty
+    local display
+
+    tty=$(get_user_console $user) && {
         test -n "$tty" && {
-            ps -f -C Xorg | awk '$6 == "'$tty'" { print $9 }'
-            return 0
+            for p in $(pgrep -t $tty); do
+                display=$(awk -v RS='\0' -F= '$1=="DISPLAY" {print $2}' /proc/$p/environ 2>/dev/null)
+                if [ -n "$display" ]; then
+                    echo $display
+                    return 0
+                fi
+            done
         }
     }
     echo "not found"
@@ -135,24 +153,24 @@ function kill_user_now {
 function kill_user {
     local user=$1
     local display
+    local atty
+    local utty
 
     shift
     display=$(get_user_display $user) && {
         $DRY_RUN || {
-            local active_vt=$(fgconsole)
-            local user_vt=$(grep "using VT number" /var/log/Xorg.${display#:}.log | egrep -o '[0-9]+$')
-            log "Must kill $user ($@) -- active VT is $active_vt / user VT is $user_vt"
-            if [ $active_vt -ne $user_vt ]; then
-                if [ -e $TMPDIR/$user.slay ]; then
-                    log "User $user already warned"
-                else
-                    echo "User $user should be killed; waiting because s/he is not active."
-                    touch $TMPDIR/$user.slay
-                    su $user -c "DISPLAY=$display yad --title 'ATTENTION' --text='SESSION EXPIRÉE' --no-buttons --undecorated --fullscreen --sticky --center --on-top --justify=center" &
-                    disown
-                fi
-            else
+            atty=$(get_active_console)
+            utty=$(get_user_console)
+            log "Must kill $user ($@) -- active console is $atty / user console is $utty"
+            if [ $atty != $utty ]; then
                 kill_user_now $user "$@"
+            elif [ -e $TMPDIR/$user.slay ]; then
+                log "User $user already warned"
+            else
+                echo "User $user should be killed; waiting because s/he is not active."
+                touch $TMPDIR/$user.slay
+                su $user -c "DISPLAY=$display yad --title 'ATTENTION' --text='SESSION EXPIRÉE' --no-buttons --undecorated --fullscreen --sticky --center --on-top --justify=center" &
+                disown
             fi
         }
     }
@@ -177,6 +195,8 @@ function check_screensaver {
     local display
     local saver
     local lock
+    local atty
+    local utty
 
     log "Checking screensaver of $user"
     display=$(get_user_display $user) && {
@@ -185,12 +205,10 @@ function check_screensaver {
             return 1
         }
 
-        local active_vt=$(fgconsole)
-        local user_vt=$(grep "using VT number" /var/log/Xorg.${display#:}.log | egrep -o '[0-9]+$')
-        log "$user's VT is $user_vt"
-        if [ $active_vt -ne $user_vt ]; then
-            log "Active VT is $active_vt, obviously $user is not active."
-            # Hence behave as if the screensaver were active
+        atty=$(get_active_console)
+        utty=$(get_user_console)
+        if [ $atty != $utty ]; then
+            log "Active console ($atty) different from user console ($utty), considering screensaver active."
             return 0
         fi
 
