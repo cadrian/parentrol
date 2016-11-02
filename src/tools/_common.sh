@@ -160,9 +160,9 @@ function kill_user {
     display=$(get_user_display $user) && {
         $DRY_RUN || {
             atty=$(get_active_console)
-            utty=$(get_user_console)
+            utty=$(get_user_console $user)
             log "Must kill $user ($@) -- active console is $atty / user console is $utty"
-            if [ $atty != $utty ]; then
+            if [ "$atty" != "$utty" ]; then
                 kill_user_now $user "$@"
             elif [ -e $TMPDIR/$user.slay ]; then
                 log "User $user already warned"
@@ -206,7 +206,7 @@ function check_screensaver {
         }
 
         atty=$(get_active_console)
-        utty=$(get_user_console)
+        utty=$(get_user_console $user)
         if [ $atty != $utty ]; then
             log "Active console ($atty) different from user console ($utty), considering screensaver active."
             return 0
